@@ -1,417 +1,101 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Product Sales Manager</title>
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- jsPDF for PDF export -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <!-- SheetJS for Excel export -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js"></script>
-<script type="module">
-
-  // Import the functions you need from the SDKs you need
-
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
-
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-analytics.js";
-
-  // TODO: Add SDKs for Firebase products that you want to use
-
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-
-  // Your web app's Firebase configuration
-
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-
-  const firebaseConfig = {
-
-    apiKey: "AIzaSyBgG89RoBGc-Gqe2TYnO_iPSdtc8XxQwJw",
-
-    authDomain: "pos-web-app-ed7e9.firebaseapp.com",
-
-    projectId: "pos-web-app-ed7e9",
-
-    storageBucket: "pos-web-app-ed7e9.firebasestorage.app",
-
-    messagingSenderId: "386790885396",
-
-    appId: "1:386790885396:web:83955d99b689cf377ebf01",
-
-    measurementId: "G-4Z7HK3HP3L"
-
-  };
-
-
-  // Initialize Firebase
-
-  const app = initializeApp(firebaseConfig);
-
-  const analytics = getAnalytics(app);
-
-</script>
-    <style>
-        body { font-family: Arial, sans-serif; background-color: #f8f9fa; }
-        .dashboard-card { background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 20px; }
-        .metric { font-size: 2rem; font-weight: bold; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 10px; border: 1px solid #ddd; text-align: left; }
-        th { background-color: #f2f2f2; }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>POS - Product & Sales Manager</title>
+  <link rel="stylesheet" href="styles.css" />
+  <!-- Firebase (compat for simple use) -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+  <!-- Export libs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
-    <div class="container mt-5">
-        <h1 class="text-center mb-4">Product Sales Manager</h1>
-        
-        <!-- Admin Metrics -->
-        <div class="dashboard-card">
-            <h5>Product Sales Management</h5>
-            <div class="row text-center">
-                <div class="col-md-3">
-                    <p>Total Products</p>
-                    <p id="totalProducts" class="metric">0</p>
-                </div>
-                <div class="col-md-3">
-                    <p>Total Sales</p>
-                    <p id="totalSales" class="metric">0</p>
-                </div>
-                <div class="col-md-3">
-                    <p>Total Revenue</p>
-                    <p id="totalRevenue" class="metric">$0.00</p>
-                </div>
-                <div class="col-md-3">
-                    <p>Avg. Profit Margin</p><script type="module">
+  <div class="wrap">
+    <header>
+      <h1>POS — Product & Sales Manager</h1>
+      <p>Manage products, record sales, calculate profit margin. Export to Excel / PDF.</p>
+    </header>
 
-  // Import the functions you need from the SDKs you need
+    <main>
+      <section class="card">
+        <h2>Add Product</h2>
+        <form id="addProductForm">
+          <label>Product name
+            <input id="p_name" required />
+          </label>
+          <label>Cost price (£)
+            <input id="p_cost" type="number" step="0.01" required />
+          </label>
+          <label>Units (stock)
+            <input id="p_units" type="number" step="1" value="1" required />
+          </label>
+          <button type="submit">Add Product</button>
+        </form>
+      </section>
 
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-app.js";
+      <section class="card">
+        <h2>Products</h2>
+        <table id="productsTable">
+          <thead><tr><th>Name</th><th>Cost</th><th>Units</th><th>Actions</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </section>
 
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.3.0/firebase-analytics.js";
+      <section class="card">
+        <h2>Record Sale</h2>
+        <form id="addSaleForm">
+          <label>Product
+            <select id="sale_product" required><option value="">-- select --</option></select>
+          </label>
+          <label>Quantity
+            <input id="sale_qty" type="number" value="1" min="1" required />
+          </label>
+          <label>Sold price (per unit) (£)
+            <input id="sale_price" type="number" step="0.01" required />
+          </label>
+          <label>Platform
+            <select id="sale_platform" required>
+              <option>TikTok</option>
+              <option>eBay</option>
+              <option>Vinted</option>
+              <option>Facebook</option>
+              <option>Depop</option>
+              <option>Cash</option>
+            </select>
+          </label>
+          <button type="submit">Record Sale</button>
+        </form>
+      </section>
 
-  // TODO: Add SDKs for Firebase products that you want to use
-
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-
-  // Your web app's Firebase configuration
-
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-
-  const firebaseConfig = {
-
-    apiKey: "AIzaSyBgG89RoBGc-Gqe2TYnO_iPSdtc8XxQwJw",
-
-    authDomain: "pos-web-app-ed7e9.firebaseapp.com",
-
-    projectId: "pos-web-app-ed7e9",
-
-    storageBucket: "pos-web-app-ed7e9.firebasestorage.app",
-
-    messagingSenderId: "386790885396",
-
-    appId: "1:386790885396:web:83955d99b689cf377ebf01",
-
-    measurementId: "G-4Z7HK3HP3L"
-
-  };
-
-
-  // Initialize Firebase
-
-  const app = initializeApp(firebaseConfig);
-
-  const analytics = getAnalytics(app);
-
-</script>
-                    <p id="avgProfitMargin" class="metric">0%</p>
-                </div>
-            </div>
+      <section class="card">
+        <h2>Sales</h2>
+        <div class="summary">
+          <div>Total Sales: <span id="totalSales">£0.00</span></div>
+          <div>Total Profit: <span id="totalProfit">£0.00</span></div>
         </div>
-        
-        <!-- Add Product Form -->
-        <div class="dashboard-card">
-            <h5>Add Product</h5>
-            <form id="addProductForm">
-                <div class="row">
-                    <div class="col-md-4">
-                        <input type="text" class="form-control" id="productName" placeholder="Product Name" required>
-                    </div>
-                    <div class="col-md-3">
-                        <input type="number" class="form-control" id="costPrice" placeholder="Cost Price" required>
-                    </div>
-                    <div class="col-md-3">
-                        <input type="number" class="form-control" id="unitsAvailable" placeholder="Units Available" required>
-                    </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary">Add Product</button>
-                    </div>
-                </div>
-            </form>
+        <table id="salesTable">
+          <thead><tr><th>Date</th><th>Product</th><th>Qty</th><th>Sold/unit</th><th>Cost/unit</th><th>Profit</th><th>Platform</th></tr></thead>
+          <tbody></tbody>
+        </table>
+
+        <div class="exports">
+          <button id="exportExcel">Download Excel</button>
+          <button id="exportPDF">Download PDF</button>
         </div>
-        
-        <!-- Add Sale Form -->
-        <div class="dashboard-card">
-            <h5>Add Sale</h5>
-            <form id="addSaleForm">
-                <div class="row">
-                    <div class="col-md-3">
-                        <select class="form-control" id="saleProduct" required></select>
-                    </div>
-                    <div class="col-md-3">
-                        <input type="number" class="form-control" id="soldPrice" placeholder="Sold Price" required>
-                    </div>
-                    <div class="col-md-3">
-                        <select class="form-control" id="platform" required>
-                            <option value="">Select Platform</option>
-                            <option value="tiktok">TikTok</option>
-                            <option value="ebay">eBay</option>
-                            <option value="vinted">Vinted</option>
-                            <option value="cash">Cash</option>
-                            <option value="fb">Facebook</option>
-                            <option value="depop">Depop</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <button type="submit" class="btn btn-primary">Add Sale</button>
-                    </div>
-                </div>
-            </form>
-        </div>
-        
-        <!-- Recent Sales -->
-        <div class="dashboard-card">
-            <h5>Recent Sales <button class="btn btn-sm btn-secondary float-end" id="downloadRecentSalesPdf">PDF</button> <button class="btn btn-sm btn-secondary float-end me-2" id="downloadRecentSalesExcel">Excel</button></h5>
-            <table id="recentSalesTable">
-                <thead><tr><th>Product</th><th>Date</th><th>Platform</th><th>Sold Price</th><th>Profit</th></tr></thead>
-                <tbody></tbody>
-            </table>
-        </div>
-        
-        <!-- Product Inventory -->
-        <div class="dashboard-card">
-            <h5>Product Inventory <button class="btn btn-sm btn-secondary float-end" id="downloadInventoryPdf">PDF</button> <button class="btn btn-sm btn-secondary float-end me-2" id="downloadInventoryExcel">Excel</button></h5>
-            <table id="inventoryTable">
-                <thead><tr><th>Product Name</th><th>Cost Price</th><th>Units Available</th><th>Actions</th></tr></thead>
-                <tbody></tbody>
-            </table>
-        </div>
-        
-        <!-- Sales History -->
-        <div class="dashboard-card">
-            <h5>Sales History <button class="btn btn-sm btn-secondary float-end" id="downloadSalesHistoryPdf">PDF</button> <button class="btn btn-sm btn-secondary float-end me-2" id="downloadSalesHistoryExcel">Excel</button></h5>
-            <table id="salesHistoryTable">
-                <thead><tr><th>Date</th><th>Product</th><th>Platform</th><th>Sold Price</th><th>Cost Price</th><th>Profit</th><th>Margin</th></tr></thead>
-                <tbody></tbody>
-            </table>
-        </div>
-        
-        <!-- Profitability by Platform -->
-        <div class="dashboard-card">
-            <h5>Profitability by Platform <button class="btn btn-sm btn-secondary float-end" id="downloadPlatformPdf">PDF</button> <button class="btn btn-sm btn-secondary float-end me-2" id="downloadPlatformExcel">Excel</button></h5>
-            <table id="platformTable">
-                <thead><tr><th>Platform</th><th>Total Sales</th><th>Total Revenue</th><th>Total Profit</th><th>Avg. Profit Margin</th></tr></thead>
-                <tbody></tbody>
-            </table>
-        </div>
-        
-        <!-- Detailed Profit Analysis -->
-        <div class="dashboard-card">
-            <h5>Detailed Profit Analysis <button class="btn btn-sm btn-secondary float-end" id="downloadProfitPdf">PDF</button> <button class="btn btn-sm btn-secondary float-end me-2" id="downloadProfitExcel">Excel</button></h5>
-            <table id="profitTable">
-                <thead><tr><th>Product</th><th>Units Sold</th><th>Total Revenue</th><th>Total Cost</th><th>Total Profit</th><th>Avg. Profit Margin</th></tr></thead>
-                <tbody></tbody>
-            </table>
-        </div>
-    </div>
+      </section>
+    </main>
 
-    <script>
-        // Replace with your Firebase config
-        const firebaseConfig = {
-            apiKey: "YOUR_API_KEY",
-            authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-            databaseURL: "https://YOUR_PROJECT_ID.firebaseio.com",
-            projectId: "YOUR_PROJECT_ID",
-            storageBucket: "YOUR_PROJECT_ID.appspot.com",
-            messagingSenderId: "YOUR_SENDER_ID",
-            appId: "YOUR_APP_ID"
-        };
-        const app = firebase.initializeApp(firebaseConfig);
-        const db = firebase.database();
-        const productsRef = db.ref('products');
-        const salesRef = db.ref('sales');
+    <footer>
+      <small>Made for Zahano — Hosted on GitHub Pages • Data in Firebase Firestore</small>
+    </footer>
+  </div>
 
-        let products = [];
-        let sales = [];
-
-        // Load data from Firebase
-        productsRef.on('value', (snapshot) => {
-            products = snapshot.val() || [];
-            updateUI();
-        });
-
-        salesRef.on('value', (snapshot) => {
-            sales = snapshot.val() || [];
-            updateUI();
-        });
-
-        // Add Product
-        document.getElementById('addProductForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const name = document.getElementById('productName').value;
-            const cost = parseFloat(document.getElementById('costPrice').value);
-            const units = parseInt(document.getElementById('unitsAvailable').value);
-            const product = { id: Date.now(), name, cost, units, sold: 0 };
-            products.push(product);
-            productsRef.set(products);
-            e.target.reset();
-        });
-
-        // Add Sale
-        document.getElementById('addSaleForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            const productId = parseInt(document.getElementById('saleProduct').value);
-            const soldPrice = parseFloat(document.getElementById('soldPrice').value);
-            const platform = document.getElementById('platform').value;
-            const product = products.find(p => p.id === productId);
-            if (product && product.units > 0) {
-                const profit = soldPrice - product.cost;
-                const margin = (profit / soldPrice) * 100;
-                const sale = { id: Date.now(), productId, date: new Date().toISOString(), platform, soldPrice, cost: product.cost, profit, margin };
-                sales.push(sale);
-                product.units--;
-                product.sold++;
-                productsRef.set(products);
-                salesRef.set(sales);
-                e.target.reset();
-            } else {
-                alert('Product not found or out of stock');
-            }
-        });
-
-        // Update UI
-        function updateUI() {
-            // Update Metrics
-            document.getElementById('totalProducts').textContent = products.length;
-            document.getElementById('totalSales').textContent = sales.length;
-            const totalRevenue = sales.reduce((sum, s) => sum + s.soldPrice, 0);
-            document.getElementById('totalRevenue').textContent = `$${totalRevenue.toFixed(2)}`;
-            const totalProfit = sales.reduce((sum, s) => sum + s.profit, 0);
-            const avgMargin = sales.length > 0 ? (totalProfit / totalRevenue) * 100 : 0;
-            document.getElementById('avgProfitMargin').textContent = `${avgMargin.toFixed(2)}%`;
-
-            // Product Dropdown
-            const saleProductSelect = document.getElementById('saleProduct');
-            saleProductSelect.innerHTML = '<option value="">Select Product</option>';
-            products.forEach(p => {
-                if (p.units > 0) {
-                    const option = document.createElement('option');
-                    option.value = p.id;
-                    option.textContent = p.name;
-                    saleProductSelect.appendChild(option);
-                }
-            });
-
-            // Inventory Table
-            const inventoryBody = document.getElementById('inventoryTable').querySelector('tbody');
-            inventoryBody.innerHTML = '';
-            products.forEach(p => {
-                const row = `<tr><td>${p.name}</td><td>$${p.cost.toFixed(2)}</td><td>${p.units}</td><td><button onclick="deleteProduct(${p.id})">Delete</button></td></tr>`;
-                inventoryBody.innerHTML += row;
-            });
-
-            // Sales History Table
-            const salesBody = document.getElementById('salesHistoryTable').querySelector('tbody');
-            salesBody.innerHTML = '';
-            sales.forEach(s => {
-                const product = products.find(p => p.id === s.productId);
-                const row = `<tr><td>${s.date}</td><td>${product ? product.name : 'Unknown'}</td><td>${s.platform}</td><td>$${s.soldPrice.toFixed(2)}</td><td>$${s.cost.toFixed(2)}</td><td>$${s.profit.toFixed(2)}</td><td>${s.margin.toFixed(2)}%</td></tr>`;
-                salesBody.innerHTML += row;
-            });
-
-            // Recent Sales (last 5)
-            const recentBody = document.getElementById('recentSalesTable').querySelector('tbody');
-            recentBody.innerHTML = '';
-            sales.slice(-5).reverse().forEach(s => {
-                const product = products.find(p => p.id === s.productId);
-                const row = `<tr><td>${product ? product.name : 'Unknown'}</td><td>${s.date}</td><td>${s.platform}</td><td>$${s.soldPrice.toFixed(2)}</td><td>$${s.profit.toFixed(2)}</td></tr>`;
-                recentBody.innerHTML += row;
-            });
-
-            // Platform Profitability
-            const platforms = ['tiktok', 'ebay', 'vinted', 'cash', 'fb', 'depop'];
-            const platformData = platforms.map(plat => {
-                const platSales = sales.filter(s => s.platform === plat);
-                const count = platSales.length;
-                const revenue = platSales.reduce((sum, s) => sum + s.soldPrice, 0);
-                const profit = platSales.reduce((sum, s) => sum + s.profit, 0);
-                const avgMargin = count > 0 ? (profit / revenue) * 100 : 0;
-                return { plat, count, revenue, profit, avgMargin };
-            }).filter(d => d.count > 0);
-            const platformBody = document.getElementById('platformTable').querySelector('tbody');
-            platformBody.innerHTML = '';
-            platformData.forEach(d => {
-                const row = `<tr><td>${d.plat}</td><td>${d.count}</td><td>$${d.revenue.toFixed(2)}</td><td>$${d.profit.toFixed(2)}</td><td>${d.avgMargin.toFixed(2)}%</td></tr>`;
-                platformBody.innerHTML += row;
-            });
-
-            // Detailed Profit
-            const profitData = products.map(p => {
-                const pSales = sales.filter(s => s.productId === p.id);
-                const unitsSold = pSales.length;
-                const revenue = pSales.reduce((sum, s) => sum + s.soldPrice, 0);
-                const cost = unitsSold * p.cost;
-                const profit = revenue - cost;
-                const avgMargin = unitsSold > 0 ? (profit / revenue) * 100 : 0;
-                return { name: p.name, unitsSold, revenue, cost, profit, avgMargin };
-            }).filter(d => d.unitsSold > 0);
-            const profitBody = document.getElementById('profitTable').querySelector('tbody');
-            profitBody.innerHTML = '';
-            profitData.forEach(d => {
-                const row = `<tr><td>${d.name}</td><td>${d.unitsSold}</td><td>$${d.revenue.toFixed(2)}</td><td>$${d.cost.toFixed(2)}</td><td>$${d.profit.toFixed(2)}</td><td>${d.avgMargin.toFixed(2)}%</td></tr>`;
-                profitBody.innerHTML += row;
-            });
-        }
-
-        // Delete Product
-        function deleteProduct(id) {
-            products = products.filter(p => p.id !== id);
-            sales = sales.filter(s => s.productId !== id);
-            productsRef.set(products);
-            salesRef.set(sales);
-        }
-
-        // Download functions
-        function downloadTableAsPdf(tableId, title) {
-            const { jsPDF } = window.jspdf;
-            const doc = new jsPDF();
-            doc.text(title, 10, 10);
-            doc.autoTable({ html: `#${tableId}` });
-            doc.save(`${title}.pdf`);
-        }
-
-        function downloadTableAsExcel(tableId, title) {
-            const table = document.getElementById(tableId);
-            const wb = XLSX.utils.table_to_book(table);
-            XLSX.writeFile(wb, `${title}.xlsx`);
-        }
-
-        // Attach download buttons
-        document.getElementById('downloadRecentSalesPdf').addEventListener('click', () => downloadTableAsPdf('recentSalesTable', 'Recent Sales'));
-        document.getElementById('downloadRecentSalesExcel').addEventListener('click', () => downloadTableAsExcel('recentSalesTable', 'Recent Sales'));
-        document.getElementById('downloadInventoryPdf').addEventListener('click', () => downloadTableAsPdf('inventoryTable', 'Product Inventory'));
-        document.getElementById('downloadInventoryExcel').addEventListener('click', () => downloadTableAsExcel('inventoryTable', 'Product Inventory'));
-        document.getElementById('downloadSalesHistoryPdf').addEventListener('click', () => downloadTableAsPdf('salesHistoryTable', 'Sales History'));
-        document.getElementById('downloadSalesHistoryExcel').addEventListener('click', () => downloadTableAsExcel('salesHistoryTable', 'Sales History'));
-        document.getElementById('downloadPlatformPdf').addEventListener('click', () => downloadTableAsPdf('platformTable', 'Profitability by Platform'));
-        document.getElementById('downloadPlatformExcel').addEventListener('click', () => downloadTableAsExcel('platformTable', 'Profitability by Platform'));
-        document.getElementById('downloadProfitPdf').addEventListener('click', () => downloadTableAsPdf('profitTable', 'Detailed Profit Analysis'));
-        document.getElementById('downloadProfitExcel').addEventListener('click', () => downloadTableAsExcel('profitTable', 'Detailed Profit Analysis'));
-    </script>
+  <!-- Firebase config (replace with your project settings) -->
+  <script src="firebase-config.js"></script>
+  <!-- App logic -->
+  <script src="app.js"></script>
 </body>
 </html>
