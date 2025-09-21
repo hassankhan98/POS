@@ -1,155 +1,107 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sales Dashboard</title>
-  
-  <!-- Bootstrap 5 CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
-  
-  <!-- Custom CSS -->
-  <link rel="stylesheet" href="style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sales Dashboard</title>
 
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Bootstrap 5 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet">
 
-  <!-- Firebase -->
-  <script type="module">
-    // Import Firebase modules
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js";
-    import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc, onSnapshot } from "https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore.js";
+<!-- Custom CSS -->
+<link rel="stylesheet" href="style.css">
 
-    const firebaseConfig = {
-      apiKey: "YOUR_API_KEY",
-      authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-      projectId: "YOUR_PROJECT_ID",
-      storageBucket: "YOUR_PROJECT_ID.appspot.com",
-      messagingSenderId: "YOUR_SENDER_ID",
-      appId: "YOUR_APP_ID"
-    };
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    const app = initializeApp(firebaseConfig);
-    window.db = getFirestore(app);
-    window.firebaseModules = { collection, addDoc, getDocs, deleteDoc, doc, onSnapshot };
-  </script>
+<!-- SheetJS for Excel export -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+<!-- jsPDF for PDF export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
 </head>
 <body>
-  <div class="d-flex" id="wrapper">
-    <!-- Sidebar -->
-    <div class="bg-light border-end" id="sidebar-wrapper">
-      <div class="sidebar-heading text-center py-4 fs-4 fw-bold">Zahano Dashboard</div>
-      <div class="list-group list-group-flush">
-        <a href="#" class="list-group-item list-group-item-action active" onclick="showSection('dashboard')">Dashboard</a>
-        <a href="#" class="list-group-item list-group-item-action" onclick="showSection('products')">Products</a>
-        <a href="#" class="list-group-item list-group-item-action" onclick="showSection('sales')">Sales</a>
-      </div>
-    </div>
-
-    <!-- Page Content -->
-    <div id="page-content-wrapper" class="w-100">
-      <!-- Topbar -->
-      <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
-        <div class="container-fluid">
-          <button class="btn btn-primary" id="sidebarToggle">☰</button>
-          <span class="ms-3 fw-bold">Zahano Sales Dashboard</span>
-        </div>
-      </nav>
-
-      <!-- Main Content -->
-      <div class="container-fluid p-4">
-
-        <!-- Dashboard Section -->
-        <div id="dashboard" class="section">
-          <div class="row mb-4">
-            <div class="col-md-4">
-              <div class="card shadow-sm p-3">
-                <h5>Total Sales</h5>
-                <h2 id="total-sales">0</h2>
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="card shadow-sm p-3">
-                <h5>Total Revenue</h5>
-                <h2 id="total-revenue">$0</h2>
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="card shadow-sm p-3">
-                <h5>Profit Margin</h5>
-                <h2 id="profit-margin">0%</h2>
-              </div>
-            </div>
-          </div>
-
-          <div class="row">
-            <div class="col-md-8 mb-4">
-              <div class="card shadow-sm p-3">
-                <h5>Revenue Timeline</h5>
-                <canvas id="lineChart"></canvas>
-              </div>
-            </div>
-            <div class="col-md-4 mb-4">
-              <div class="card shadow-sm p-3">
-                <h5>Platform Distribution</h5>
-                <canvas id="doughnutChart"></canvas>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Products Section -->
-        <div id="products" class="section" style="display:none;">
-          <div class="card shadow-sm p-3 mb-4">
-            <h5>Add Product</h5>
-            <div class="row g-2">
-              <div class="col-md-4"><input type="text" id="product-name" class="form-control" placeholder="Product Name"></div>
-              <div class="col-md-4"><input type="number" id="product-price" class="form-control" placeholder="Price"></div>
-              <div class="col-md-4"><button class="btn btn-primary w-100" onclick="addProduct()">Add Product</button></div>
-            </div>
-          </div>
-
-          <div class="card shadow-sm p-3">
-            <h5>Products List</h5>
-            <table class="table table-hover" id="products-table">
-              <thead>
-                <tr><th>Name</th><th>Price</th><th>Action</th></tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-        </div>
-
-        <!-- Sales Section -->
-        <div id="sales" class="section" style="display:none;">
-          <div class="card shadow-sm p-3 mb-4">
-            <h5>Add Sale</h5>
-            <div class="row g-2">
-              <div class="col-md-4"><input type="text" id="sale-product" class="form-control" placeholder="Product Name"></div>
-              <div class="col-md-4"><input type="number" id="sale-amount" class="form-control" placeholder="Amount"></div>
-              <div class="col-md-4"><button class="btn btn-primary w-100" onclick="addSale()">Add Sale</button></div>
-            </div>
-          </div>
-
-          <div class="card shadow-sm p-3">
-            <h5>Sales List</h5>
-            <table class="table table-hover" id="sales-table">
-              <thead>
-                <tr><th>Product</th><th>Amount</th><th>Action</th></tr>
-              </thead>
-              <tbody></tbody>
-            </table>
-          </div>
-        </div>
-
-      </div>
+<div class="d-flex" id="wrapper">
+  <!-- Sidebar -->
+  <div class="bg-light border-end" id="sidebar-wrapper">
+    <div class="sidebar-heading text-center py-4 fs-4 fw-bold">Zahano Dashboard</div>
+    <div class="list-group list-group-flush">
+      <a href="#" class="list-group-item list-group-item-action active" onclick="showSection('dashboard')">Dashboard</a>
+      <a href="#" class="list-group-item list-group-item-action" onclick="showSection('products')">Products</a>
+      <a href="#" class="list-group-item list-group-item-action" onclick="showSection('sales')">Sales</a>
     </div>
   </div>
 
-  <!-- Custom Script -->
-  <script src="script.js" type="module"></script>
-  
-  <!-- Bootstrap JS -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Page Content -->
+  <div id="page-content-wrapper" class="w-100">
+    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
+      <div class="container-fluid">
+        <button class="btn btn-primary" id="sidebarToggle">☰</button>
+        <span class="ms-3 fw-bold">Zahano Sales Dashboard</span>
+      </div>
+    </nav>
+
+    <div class="container-fluid p-4">
+
+      <!-- Dashboard Section -->
+      <div id="dashboard" class="section">
+        <div class="row mb-4">
+          <div class="col-md-4"><div class="card shadow-sm p-3"><h5>Total Sales</h5><h2 id="total-sales">0</h2></div></div>
+          <div class="col-md-4"><div class="card shadow-sm p-3"><h5>Total Revenue</h5><h2 id="total-revenue">$0</h2></div></div>
+          <div class="col-md-4"><div class="card shadow-sm p-3"><h5>Profit Margin</h5><h2 id="profit-margin">0%</h2></div></div>
+        </div>
+        <div class="row">
+          <div class="col-md-8 mb-4"><div class="card shadow-sm p-3"><h5>Revenue Timeline</h5><canvas id="lineChart"></canvas></div></div>
+          <div class="col-md-4 mb-4"><div class="card shadow-sm p-3"><h5>Platform Distribution</h5><canvas id="doughnutChart"></canvas></div></div>
+        </div>
+      </div>
+
+      <!-- Products Section -->
+      <div id="products" class="section" style="display:none;">
+        <div class="card shadow-sm p-3 mb-4">
+          <h5>Add Product</h5>
+          <div class="row g-2">
+            <div class="col-md-4"><input type="text" id="product-name" class="form-control" placeholder="Product Name"></div>
+            <div class="col-md-4"><input type="number" id="product-price" class="form-control" placeholder="Price"></div>
+            <div class="col-md-4"><button class="btn btn-primary w-100" id="add-product-btn">Add Product</button></div>
+          </div>
+          <button class="btn btn-success mt-2" id="export-products">Export Products (PDF & Excel)</button>
+        </div>
+        <div class="card shadow-sm p-3">
+          <h5>Products List</h5>
+          <table class="table table-hover" id="products-table">
+            <thead><tr><th>Name</th><th>Price</th><th>Action</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Sales Section -->
+      <div id="sales" class="section" style="display:none;">
+        <div class="card shadow-sm p-3 mb-4">
+          <h5>Add Sale</h5>
+          <div class="row g-2">
+            <div class="col-md-4"><input type="text" id="sale-product" class="form-control" placeholder="Product Name"></div>
+            <div class="col-md-4"><input type="number" id="sale-amount" class="form-control" placeholder="Amount"></div>
+            <div class="col-md-4"><button class="btn btn-primary w-100" id="add-sale-btn">Add Sale</button></div>
+          </div>
+          <button class="btn btn-success mt-2" id="export-sales">Export Sales (PDF & Excel)</button>
+        </div>
+        <div class="card shadow-sm p-3">
+          <h5>Sales List</h5>
+          <table class="table table-hover" id="sales-table">
+            <thead><tr><th>Product</th><th>Amount</th><th>Action</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script type="module" src="script.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
