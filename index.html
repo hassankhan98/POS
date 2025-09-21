@@ -1,86 +1,141 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>POS Web App</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>POS Web App</title>
+<link rel="stylesheet" href="style.css">
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="firebase-config.js"></script>
 </head>
-<body class="bg-gray-100 text-gray-900">
+<body>
+<div class="container">
+  <h1>POS Web App</h1>
 
-  <!-- Navbar -->
-  <nav class="bg-indigo-600 p-4 shadow text-white">
-    <h1 class="text-xl font-bold">POS Web App</h1>
-  </nav>
-
-  <!-- Tabs -->
-  <div class="flex space-x-4 p-4 bg-white shadow">
-    <button onclick="showTab('products')" class="tab-btn bg-indigo-500 text-white px-4 py-2 rounded">Add Products</button>
-    <button onclick="showTab('sales')" class="tab-btn bg-gray-200 px-4 py-2 rounded">Sales Record</button>
-    <button onclick="showTab('profit')" class="tab-btn bg-gray-200 px-4 py-2 rounded">Profit Margin</button>
+  <!-- Add Product -->
+  <div>
+    <h2>Add Product</h2>
+    <input type="text" id="productName" placeholder="Product Name">
+    <input type="number" id="productUnits" placeholder="Units">
+    <input type="number" id="productCost" placeholder="Cost Price">
+    <button onclick="addProduct()">Add Product</button>
   </div>
 
-  <!-- Content -->
-  <div id="products" class="tab p-6">
-    <h2 class="text-lg font-bold mb-4">Add Product</h2>
-    <form id="productForm" class="space-y-4">
-      <input type="text" id="productName" placeholder="Product Name" class="w-full border p-2 rounded">
-      <input type="number" id="productUnits" placeholder="Units" class="w-full border p-2 rounded">
-      <input type="number" id="productCost" placeholder="Cost Price" class="w-full border p-2 rounded">
-      <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded">Add Product</button>
-    </form>
-
-    <h3 class="text-lg font-bold mt-6">Product List</h3>
-    <table class="w-full mt-2 border">
-      <thead class="bg-gray-200">
-        <tr>
-          <th class="p-2">Name</th>
-          <th class="p-2">Units</th>
-          <th class="p-2">Cost Price</th>
-        </tr>
-      </thead>
-      <tbody id="productList"></tbody>
-    </table>
+  <!-- Record Sale -->
+  <div>
+    <h2>Record Sale</h2>
+    <select id="saleProduct">
+      <option value="">Select Product</option>
+    </select>
+    <input type="number" id="salePrice" placeholder="Sold Price">
+    <select id="salePlatform">
+      <option value="">Platform</option>
+      <option value="TikTok">TikTok</option>
+      <option value="eBay">eBay</option>
+      <option value="Vinted">Vinted</option>
+      <option value="Cash">Cash</option>
+      <option value="Facebook">Facebook</option>
+      <option value="Depop">Depop</option>
+    </select>
+    <button onclick="addSale()">Record Sale</button>
   </div>
 
-  <div id="sales" class="tab hidden p-6">
-    <h2 class="text-lg font-bold mb-4">Add Sale</h2>
-    <form id="salesForm" class="space-y-4">
-      <select id="saleProduct" class="w-full border p-2 rounded"></select>
-      <input type="number" id="salePrice" placeholder="Sold Price" class="w-full border p-2 rounded">
-      <select id="salePlatform" class="w-full border p-2 rounded">
-        <option value="TikTok">TikTok</option>
-        <option value="Ebay">Ebay</option>
-        <option value="Vinted">Vinted</option>
-        <option value="Cash">Cash</option>
-        <option value="FB">FB</option>
-        <option value="Depop">Depop</option>
-      </select>
-      <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded">Add Sale</button>
-    </form>
-
-    <h3 class="text-lg font-bold mt-6">Sales List</h3>
-    <table class="w-full mt-2 border">
-      <thead class="bg-gray-200">
-        <tr>
-          <th class="p-2">Product</th>
-          <th class="p-2">Price</th>
-          <th class="p-2">Platform</th>
-        </tr>
-      </thead>
-      <tbody id="salesList"></tbody>
-    </table>
+  <!-- Sales Report -->
+  <div>
+    <h2>Sales Report</h2>
+    <ul id="salesList"></ul>
+    <button onclick="exportExcel()">Download Excel</button>
+    <button onclick="exportPDF()">Download PDF</button>
   </div>
+</div>
 
-  <div id="profit" class="tab hidden p-6">
-    <h2 class="text-lg font-bold mb-4">Profit Margin</h2>
-    <div id="profitSummary" class="p-4 bg-white rounded shadow"></div>
-    <button onclick="downloadCSV()" class="mt-4 bg-green-600 text-white px-4 py-2 rounded">Download Excel (CSV)</button>
-  </div>
+<script>
+const productsRef = db.collection("products");
+const salesRef = db.collection("sales");
 
-  <script src="firebase-config.js"></script>
-  <script src="app.js"></script>
+// Load products dropdown
+function loadProducts() {
+  productsRef.get().then(snapshot => {
+    const select = document.getElementById("saleProduct");
+    select.innerHTML = '<option value="">Select Product</option>';
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      select.innerHTML += `<option value="${data.name}" data-cost="${data.cost}">${data.name}</option>`;
+    });
+  });
+}
+
+// Load sales report
+function loadSales() {
+  salesRef.get().then(snapshot => {
+    const list = document.getElementById("salesList");
+    list.innerHTML = '';
+    snapshot.forEach(doc => {
+      const s = doc.data();
+      list.innerHTML += `<li>${s.product} | Sold: £${s.price} | Platform: ${s.platform} | Profit: £${s.profit}</li>`;
+    });
+  });
+}
+
+// Add product
+function addProduct() {
+  const name = document.getElementById("productName").value;
+  const units = parseInt(document.getElementById("productUnits").value);
+  const cost = parseFloat(document.getElementById("productCost").value);
+  if(!name || !units || !cost) return alert("Fill all fields");
+
+  productsRef.add({ name, units, cost })
+    .then(() => { alert("Product added"); loadProducts(); })
+    .catch(err => alert(err));
+}
+
+// Add sale
+function addSale() {
+  const product = document.getElementById("saleProduct");
+  const price = parseFloat(document.getElementById("salePrice").value);
+  const platform = document.getElementById("salePlatform").value;
+  if(!product.value || !price || !platform) return alert("Fill all fields");
+
+  const cost = parseFloat(product.selectedOptions[0].dataset.cost);
+  const profit = price - cost;
+
+  salesRef.add({ product: product.value, price, platform, profit })
+    .then(() => { alert("Sale recorded"); loadSales(); })
+    .catch(err => alert(err));
+}
+
+// Export Excel
+function exportExcel() {
+  salesRef.get().then(snapshot => {
+    const data = snapshot.docs.map(doc => doc.data());
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Sales");
+    XLSX.writeFile(wb, "sales_report.xlsx");
+  });
+}
+
+// Export PDF
+function exportPDF() {
+  salesRef.get().then(snapshot => {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    doc.text("Sales Report", 20, 10);
+    snapshot.docs.forEach((docData, i) => {
+      const s = docData.data();
+      doc.text(`${i+1}. ${s.product} | Sold: £${s.price} | ${s.platform} | Profit: £${s.profit}`, 20, 20 + i*10);
+    });
+    doc.save("sales_report.pdf");
+  });
+}
+
+// Initial load
+loadProducts();
+loadSales();
+</script>
+
 </body>
 </html>
