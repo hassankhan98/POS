@@ -8,6 +8,15 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Firebase App (required for all Firebase services) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <!-- Firebase Firestore -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <!-- SheetJS (for Excel export) -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <!-- jsPDF (for PDF export) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
     <style>
         :root {
             --primary: #4a6cf7;
@@ -197,6 +206,18 @@
             border-color: var(--primary-dark);
         }
 
+        .btn-export {
+            background-color: #6c757d;
+            border-color: #6c757d;
+            color: white;
+        }
+
+        .btn-export:hover {
+            background-color: #5a6268;
+            border-color: #5a6268;
+            color: white;
+        }
+
         /* Tables */
         .table {
             border-collapse: separate;
@@ -280,6 +301,13 @@
             height: 300px;
         }
 
+        /* Export buttons */
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
         /* Responsive */
         @media (max-width: 992px) {
             .sidebar {
@@ -303,6 +331,20 @@
             font-size: 1.5rem;
             color: var(--dark);
             cursor: pointer;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -331,6 +373,11 @@
             <li class="nav-item">
                 <a class="nav-link" href="#" data-section="profit-margin">
                     <i class="fas fa-chart-pie"></i> Analytics
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" data-section="export-data">
+                    <i class="fas fa-file-export"></i> Export Data
                 </a>
             </li>
             <li class="nav-item mt-4">
@@ -487,7 +534,14 @@
                                         <label class="form-label">Selling Price</label>
                                         <input type="number" class="form-control" id="sellPrice" required step="0.01">
                                     </div>
-                                    <button type="submit" class="btn btn-primary">Add Product</button>
+                                    <div class="mb-3">
+                                        <label class="form-label">Units</label>
+                                        <input type="number" class="form-control" id="units" required min="1" value="1">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary" id="addProductBtn">
+                                        <span id="addProductText">Add Product</span>
+                                        <span id="addProductLoader" class="loading" style="display: none;"></span>
+                                    </button>
                                 </form>
                             </div>
                         </div>
@@ -506,6 +560,7 @@
                                                 <th>Name</th>
                                                 <th>Cost</th>
                                                 <th>Price</th>
+                                                <th>Units</th>
                                                 <th>Margin</th>
                                             </tr>
                                         </thead>
@@ -549,7 +604,10 @@
                                         <label class="form-label">Sold Price</label>
                                         <input type="number" class="form-control" id="salePrice" required step="0.01">
                                     </div>
-                                    <button type="submit" class="btn btn-primary">Record Sale</button>
+                                    <button type="submit" class="btn btn-primary" id="recordSaleBtn">
+                                        <span id="recordSaleText">Record Sale</span>
+                                        <span id="recordSaleLoader" class="loading" style="display: none;"></span>
+                                    </button>
                                 </form>
                             </div>
                         </div>
@@ -612,9 +670,69 @@
                 </div>
             </div>
         </div>
+
+        <!-- Export Data Section -->
+        <div id="export-data" class="content-section">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="m-0">Export Data</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="export-buttons">
+                                    <button class="btn btn-export" onclick="exportData('products', 'excel')">
+                                        <i class="fas fa-file-excel me-2"></i> Export Products to Excel
+                                    </button>
+                                    <button class="btn btn-export" onclick="exportData('sales', 'excel')">
+                                        <i class="fas fa-file-excel me-2"></i> Export Sales to Excel
+                                    </button>
+                                    <button class="btn btn-export" onclick="exportData('products', 'pdf')">
+                                        <i class="fas fa-file-pdf me-2"></i> Export Products to PDF
+                                    </button>
+                                    <button class="btn btn-export" onclick="exportData('sales', 'pdf')">
+                                        <i class="fas fa-file-pdf me-2"></i> Export Sales to PDF
+                                    </button>
+                                </div>
+                                
+                                <div class="table-responsive">
+                                    <table class="table table-hover" id="exportTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Data will appear here after export selection</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr>
+                                                <td>Select an export option above to view data</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBgG89RoBGc-Gqe2TYnO_iPSdtc8XxQwJw",
+            authDomain: "pos-web-app-ed7e9.firebaseapp.com",
+            projectId: "pos-web-app-ed7e9",
+            storageBucket: "pos-web-app-ed7e9.appspot.com",
+            messagingSenderId: "386790885396",
+            appId: "1:386790885396:web:83955d99b689cf377ebf01"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
         // Navigation
         const navLinks = document.querySelectorAll('.nav-link');
         const sections = document.querySelectorAll('.content-section');
@@ -639,23 +757,72 @@
             document.querySelector('.sidebar').classList.toggle('active');
         });
 
-        // Storage
-        let products = JSON.parse(localStorage.getItem('products') || '[]');
-        let sales = JSON.parse(localStorage.getItem('sales') || '[]');
+        // Data arrays
+        let products = [];
+        let sales = [];
+
+        // Load data from Firebase
+        function loadData() {
+            // Load products
+            db.collection("products").get().then((querySnapshot) => {
+                products = [];
+                querySnapshot.forEach((doc) => {
+                    products.push({ id: doc.id, ...doc.data() });
+                });
+                renderProducts();
+                renderSaleProducts();
+                updateDashboard();
+            });
+
+            // Load sales
+            db.collection("sales").get().then((querySnapshot) => {
+                sales = [];
+                querySnapshot.forEach((doc) => {
+                    sales.push({ id: doc.id, ...doc.data() });
+                });
+                renderSales();
+                updateDashboard();
+            });
+        }
 
         // Add Product
         document.getElementById('productForm').addEventListener('submit', e => {
             e.preventDefault();
+            
+            const addProductBtn = document.getElementById('addProductBtn');
+            const addProductText = document.getElementById('addProductText');
+            const addProductLoader = document.getElementById('addProductLoader');
+            
+            addProductText.style.display = 'none';
+            addProductLoader.style.display = 'inline-block';
+            addProductBtn.disabled = true;
+            
             const name = document.getElementById('productName').value;
             const cost = parseFloat(document.getElementById('costPrice').value);
             const price = parseFloat(document.getElementById('sellPrice').value);
+            const units = parseInt(document.getElementById('units').value);
             
-            products.push({name, cost, price});
-            localStorage.setItem('products', JSON.stringify(products));
-            document.getElementById('productForm').reset();
-            
-            renderProducts();
-            updateDashboard();
+            // Add to Firebase
+            db.collection("products").add({
+                name, cost, price, units
+            })
+            .then((docRef) => {
+                console.log("Product added with ID: ", docRef.id);
+                // Add to local array
+                products.push({ id: docRef.id, name, cost, price, units });
+                document.getElementById('productForm').reset();
+                renderProducts();
+                updateDashboard();
+            })
+            .catch((error) => {
+                console.error("Error adding product: ", error);
+                alert("Error adding product. Please try again.");
+            })
+            .finally(() => {
+                addProductText.style.display = 'inline-block';
+                addProductLoader.style.display = 'none';
+                addProductBtn.disabled = false;
+            });
         });
 
         // Render Products
@@ -670,12 +837,14 @@
                     <td>${p.name}</td>
                     <td>$${p.cost.toFixed(2)}</td>
                     <td>$${p.price.toFixed(2)}</td>
+                    <td>${p.units}</td>
                     <td class="${margin >= 0 ? 'profit-positive' : 'profit-negative'}">${margin}%</td>
                 `;
                 tbody.appendChild(tr);
             });
             
             document.getElementById('products-count').textContent = `${products.length} products`;
+            document.getElementById('total-products').textContent = products.length;
         }
 
         // Render Sale Product Options
@@ -685,7 +854,7 @@
             
             products.forEach(p => {
                 const opt = document.createElement('option');
-                opt.value = p.name;
+                opt.value = p.id;
                 opt.textContent = p.name;
                 select.appendChild(opt);
             });
@@ -694,26 +863,57 @@
         // Record Sale
         document.getElementById('saleForm').addEventListener('submit', e => {
             e.preventDefault();
-            const productName = document.getElementById('saleProduct').value;
+            
+            const recordSaleBtn = document.getElementById('recordSaleBtn');
+            const recordSaleText = document.getElementById('recordSaleText');
+            const recordSaleLoader = document.getElementById('recordSaleLoader');
+            
+            recordSaleText.style.display = 'none';
+            recordSaleLoader.style.display = 'inline-block';
+            recordSaleBtn.disabled = true;
+            
+            const productId = document.getElementById('saleProduct').value;
             const platform = document.getElementById('salePlatform').value;
             const soldPrice = parseFloat(document.getElementById('salePrice').value);
             
-            const product = products.find(p => p.name === productName);
+            const product = products.find(p => p.id === productId);
             const profit = soldPrice - product.cost;
+            const date = new Date().toLocaleDateString();
             
-            sales.push({
-                product: productName,
+            // Add to Firebase
+            db.collection("sales").add({
+                productId: productId,
+                productName: product.name,
                 platform,
                 price: soldPrice,
                 profit,
-                date: new Date().toLocaleDateString()
+                date
+            })
+            .then((docRef) => {
+                console.log("Sale recorded with ID: ", docRef.id);
+                // Add to local array
+                sales.push({
+                    id: docRef.id,
+                    productId,
+                    product: product.name,
+                    platform,
+                    price: soldPrice,
+                    profit,
+                    date
+                });
+                document.getElementById('saleForm').reset();
+                renderSales();
+                updateDashboard();
+            })
+            .catch((error) => {
+                console.error("Error recording sale: ", error);
+                alert("Error recording sale. Please try again.");
+            })
+            .finally(() => {
+                recordSaleText.style.display = 'inline-block';
+                recordSaleLoader.style.display = 'none';
+                recordSaleBtn.disabled = false;
             });
-            
-            localStorage.setItem('sales', JSON.stringify(sales));
-            document.getElementById('saleForm').reset();
-            
-            renderSales();
-            updateDashboard();
         });
 
         // Render Sales Table
@@ -758,6 +958,7 @@
             });
             
             document.getElementById('sales-count').textContent = `${sales.length} sales`;
+            document.getElementById('total-sales').textContent = sales.length;
         }
 
         // Profit Table
@@ -766,7 +967,7 @@
             tbody.innerHTML = '';
             
             products.forEach(p => {
-                const sold = sales.filter(s => s.product === p.name);
+                const sold = sales.filter(s => s.productId === p.id);
                 const totalSold = sold.length;
                 const totalRevenue = sold.reduce((a, s) => a + s.price, 0);
                 const totalProfit = sold.reduce((a, s) => a + s.profit, 0);
@@ -788,9 +989,6 @@
 
         // Dashboard Stats
         function updateDashboard() {
-            document.getElementById('total-products').textContent = products.length;
-            document.getElementById('total-sales').textContent = sales.length;
-            
             const revenue = sales.reduce((a, s) => a + s.price, 0);
             const totalProfit = sales.reduce((a, s) => a + s.profit, 0);
             
@@ -902,10 +1100,97 @@
             });
         }
 
-        // Initial render
-        renderProducts();
-        renderSaleProducts();
-        updateDashboard();
+        // Export Data Functions
+        function exportData(dataType, format) {
+            let data, headers, title;
+            
+            if (dataType === 'products') {
+                title = 'Products';
+                headers = ['Name', 'Cost Price', 'Selling Price', 'Units', 'Profit Margin'];
+                data = products.map(p => {
+                    const margin = ((p.price - p.cost) / p.price * 100).toFixed(2);
+                    return [p.name, `$${p.cost.toFixed(2)}`, `$${p.price.toFixed(2)}`, p.units, `${margin}%`];
+                });
+            } else if (dataType === 'sales') {
+                title = 'Sales';
+                headers = ['Product', 'Date', 'Platform', 'Sold Price', 'Profit'];
+                data = sales.map(s => {
+                    return [s.product, s.date, s.platform, `$${s.price.toFixed(2)}`, `$${s.profit.toFixed(2)}`];
+                });
+            }
+            
+            // Update preview table
+            const exportTable = document.getElementById('exportTable');
+            exportTable.innerHTML = '';
+            
+            // Create header
+            let thead = exportTable.createTHead();
+            let headerRow = thead.insertRow();
+            headers.forEach(headerText => {
+                let th = document.createElement('th');
+                th.textContent = headerText;
+                headerRow.appendChild(th);
+            });
+            
+            // Create body
+            let tbody = exportTable.createTBody();
+            data.forEach(rowData => {
+                let row = tbody.insertRow();
+                rowData.forEach(cellData => {
+                    let cell = row.insertCell();
+                    cell.textContent = cellData;
+                });
+            });
+            
+            // Export to selected format
+            if (format === 'excel') {
+                exportToExcel(data, headers, title);
+            } else if (format === 'pdf') {
+                exportToPDF(data, headers, title);
+            }
+        }
+
+        function exportToExcel(data, headers, title) {
+            // Create a worksheet
+            const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+            
+            // Create a workbook
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, title);
+            
+            // Export the file
+            XLSX.writeFile(wb, `${title}_Export.xlsx`);
+        }
+
+        function exportToPDF(data, headers, title) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            // Add title
+            doc.setFontSize(18);
+            doc.text(`${title} Report`, 14, 15);
+            
+            // Add date
+            doc.setFontSize(11);
+            doc.setTextColor(100);
+            doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 14, 22);
+            
+            // Create table
+            doc.autoTable({
+                head: [headers],
+                body: data,
+                startY: 30,
+                theme: 'grid',
+                styles: { fontSize: 9 },
+                headStyles: { fillColor: [74, 108, 247] }
+            });
+            
+            // Save the PDF
+            doc.save(`${title}_Export.pdf`);
+        }
+
+        // Initial load
+        loadData();
     </script>
 </body>
 </html>
