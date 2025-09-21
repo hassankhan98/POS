@@ -2,93 +2,96 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>POS Web App</title>
+  <title>POS Dashboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <!-- Bootstrap -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- jsPDF -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <!-- SheetJS -->
+  <!-- Firebase -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+  <!-- FileSaver + XLSX + jsPDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
-    body {background:#f8f9fc;}
-    .sidebar {height:100vh;background:#343a40;color:white;padding-top:20px;}
-    .sidebar a {color:white;display:block;padding:10px;text-decoration:none;}
-    .sidebar a:hover {background:#495057;}
-    .content {padding:20px;}
+    body { background:#f8f9fc; }
+    .sidebar { height:100vh; background:#343a40; color:#fff; padding:1rem; position:fixed; }
+    .sidebar a { color:#adb5bd; display:block; margin:0.5rem 0; text-decoration:none; }
+    .sidebar a.active, .sidebar a:hover { color:#fff; }
+    .content { margin-left:220px; padding:2rem; }
   </style>
 </head>
 <body>
-<div class="container-fluid">
-  <div class="row">
-    <!-- Sidebar -->
-    <div class="col-md-2 sidebar">
-      <h4 class="text-center">POS Dashboard</h4>
-      <a href="#" onclick="showSection('dashboard')">Dashboard</a>
-      <a href="#" onclick="showSection('products')">Add Products</a>
-      <a href="#" onclick="showSection('sales')">Sales Record</a>
-      <a href="#" onclick="showSection('export')">Export</a>
+<div class="sidebar">
+  <h4>POS System</h4>
+  <a href="#" class="active" onclick="showSection('dashboard')">Dashboard</a>
+  <a href="#" onclick="showSection('products')">Products</a>
+  <a href="#" onclick="showSection('sales')">Sales</a>
+  <a href="#" onclick="showSection('reports')">Reports</a>
+</div>
+
+<div class="content">
+  <!-- Dashboard -->
+  <div id="dashboard" class="section">
+    <h2>Dashboard</h2>
+    <div class="row mb-4">
+      <div class="col-md-3"><div class="card p-3"><h5>Total Products</h5><p id="totalProducts">0</p></div></div>
+      <div class="col-md-3"><div class="card p-3"><h5>Total Sales</h5><p id="totalSales">0</p></div></div>
+      <div class="col-md-3"><div class="card p-3"><h5>Total Revenue</h5><p id="totalRevenue">£0</p></div></div>
+      <div class="col-md-3"><div class="card p-3"><h5>Avg Margin</h5><p id="avgMargin">0%</p></div></div>
     </div>
+    <canvas id="salesChart"></canvas>
+  </div>
 
-    <!-- Main Content -->
-    <div class="col-md-10 content">
-      <!-- Dashboard -->
-      <div id="dashboard" class="section">
-        <h2>Dashboard</h2>
-        <div class="row">
-          <div class="col-md-4"><canvas id="salesChart"></canvas></div>
-          <div class="col-md-4"><canvas id="platformChart"></canvas></div>
-        </div>
+  <!-- Products -->
+  <div id="products" class="section d-none">
+    <h2>Products</h2>
+    <form id="addProductForm" class="mb-3">
+      <div class="row">
+        <div class="col"><input class="form-control" placeholder="Product Name" id="productName" required></div>
+        <div class="col"><input class="form-control" placeholder="Cost Price" type="number" id="costPrice" required></div>
+        <div class="col"><input class="form-control" placeholder="Units" type="number" id="units" required></div>
+        <div class="col"><button class="btn btn-primary" type="submit">Add Product</button></div>
       </div>
+    </form>
+    <table class="table table-bordered"><thead><tr><th>Name</th><th>Cost</th><th>Units</th><th>Action</th></tr></thead><tbody id="productTable"></tbody></table>
+  </div>
 
-      <!-- Add Products -->
-      <div id="products" class="section" style="display:none;">
-        <h2>Add Product</h2>
-        <form id="productForm" class="mb-3">
-          <input class="form-control mb-2" placeholder="Product Name" id="productName" required>
-          <input class="form-control mb-2" type="number" placeholder="Cost Price" id="costPrice" required>
-          <input class="form-control mb-2" type="number" placeholder="Units" id="units" required>
-          <button class="btn btn-primary" type="submit">Add Product</button>
-        </form>
-        <ul id="productList" class="list-group"></ul>
-      </div>
-
-      <!-- Sales Record -->
-      <div id="sales" class="section" style="display:none;">
-        <h2>Sales Record</h2>
-        <form id="salesForm" class="mb-3">
-          <select id="saleProduct" class="form-control mb-2"></select>
-          <input class="form-control mb-2" type="number" placeholder="Sold Price" id="soldPrice" required>
-          <select class="form-control mb-2" id="platform">
-            <option>TikTok</option>
-            <option>eBay</option>
-            <option>Vinted</option>
-            <option>Cash</option>
-            <option>Facebook</option>
-            <option>Depop</option>
+  <!-- Sales -->
+  <div id="sales" class="section d-none">
+    <h2>Sales</h2>
+    <form id="addSaleForm" class="mb-3">
+      <div class="row">
+        <div class="col"><select class="form-control" id="saleProduct"></select></div>
+        <div class="col"><input class="form-control" placeholder="Sold Price" type="number" id="soldPrice" required></div>
+        <div class="col">
+          <select class="form-control" id="platform">
+            <option value="TikTok">TikTok</option>
+            <option value="eBay">eBay</option>
+            <option value="Vinted">Vinted</option>
+            <option value="Cash">Cash</option>
+            <option value="Facebook">Facebook</option>
+            <option value="Depop">Depop</option>
           </select>
-          <button class="btn btn-success" type="submit">Add Sale</button>
-        </form>
-        <ul id="salesList" class="list-group"></ul>
+        </div>
+        <div class="col"><button class="btn btn-success" type="submit">Record Sale</button></div>
       </div>
+    </form>
+    <table class="table table-bordered"><thead><tr><th>Product</th><th>Sold Price</th><th>Platform</th><th>Profit</th><th>Action</th></tr></thead><tbody id="salesTable"></tbody></table>
+  </div>
 
-      <!-- Export Section -->
-      <div id="export" class="section" style="display:none;">
-        <h2>Export Data</h2>
-        <button class="btn btn-danger me-2" onclick="exportPDF()">Export PDF</button>
-        <button class="btn btn-success" onclick="exportExcel()">Export Excel</button>
-      </div>
-    </div>
+  <!-- Reports -->
+  <div id="reports" class="section d-none">
+    <h2>Reports</h2>
+    <button class="btn btn-danger me-2" onclick="exportPDF()">Export PDF</button>
+    <button class="btn btn-success" onclick="exportExcel()">Export Excel</button>
   </div>
 </div>
 
 <script>
-// Firebase config
+/* ===== Firebase Setup ===== */
 const firebaseConfig = {
   apiKey: "AIzaSyBgG89RoBGc-Gqe2TYnO_iPSdtc8XxQwJw",
   authDomain: "pos-web-app-ed7e9.firebaseapp.com",
@@ -97,122 +100,118 @@ const firebaseConfig = {
   messagingSenderId: "386790885396",
   appId: "1:386790885396:web:83955d99b689cf377ebf01"
 };
-
-// Init Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-let salesChart, platformChart;
-
-// Section toggle
+/* ===== UI Navigation ===== */
 function showSection(id){
-  document.querySelectorAll('.section').forEach(sec=>sec.style.display='none');
-  document.getElementById(id).style.display='block';
+  document.querySelectorAll('.section').forEach(sec=>sec.classList.add('d-none'));
+  document.getElementById(id).classList.remove('d-none');
+  document.querySelectorAll('.sidebar a').forEach(a=>a.classList.remove('active'));
+  event.target.classList.add('active');
 }
 
-// Add product
-document.getElementById('productForm').addEventListener('submit', async e=>{
+/* ===== Add Product ===== */
+const addProductForm = document.getElementById('addProductForm');
+addProductForm.addEventListener('submit', async (e)=>{
   e.preventDefault();
-  const name=document.getElementById('productName').value;
-  const cost=parseFloat(document.getElementById('costPrice').value);
-  const units=parseInt(document.getElementById('units').value);
-  await db.collection('products').add({name,cost,units});
-  e.target.reset();
+  await db.collection('products').add({
+    name: productName.value,
+    cost: parseFloat(costPrice.value),
+    units: parseInt(units.value)
+  });
+  addProductForm.reset();
 });
 
-// Show products
-db.collection('products').onSnapshot(snap=>{
-  const list=document.getElementById('productList');
-  const saleSelect=document.getElementById('saleProduct');
-  list.innerHTML=''; saleSelect.innerHTML='';
-  snap.forEach(doc=>{
-    const p=doc.data();
-    const li=document.createElement('li');
-    li.className='list-group-item d-flex justify-content-between align-items-center';
-    li.textContent=`${p.name} (Cost: $${p.cost}, Units: ${p.units})`;
-    const btn=document.createElement('button');
-    btn.className='btn btn-sm btn-danger'; btn.textContent='Delete';
-    btn.onclick=()=>db.collection('products').doc(doc.id).delete();
-    li.appendChild(btn);
-    list.appendChild(li);
-    saleSelect.innerHTML+=`<option value="${doc.id}">${p.name}</option>`;
+/* ===== Render Products ===== */
+const productTable = document.getElementById('productTable');
+const saleProduct = document.getElementById('saleProduct');
+db.collection('products').onSnapshot(snapshot=>{
+  productTable.innerHTML='';
+  saleProduct.innerHTML='';
+  snapshot.forEach(doc=>{
+    const p = doc.data();
+    productTable.innerHTML+=`<tr>
+      <td>${p.name}</td><td>£${p.cost}</td><td>${p.units}</td>
+      <td><button class="btn btn-sm btn-danger" onclick="deleteProduct('${doc.id}')">Delete</button></td>
+    </tr>`;
+    saleProduct.innerHTML+=`<option value="${doc.id}" data-cost="${p.cost}">${p.name}</option>`;
   });
 });
 
-// Add sale
-document.getElementById('salesForm').addEventListener('submit', async e=>{
-  e.preventDefault();
-  const productId=document.getElementById('saleProduct').value;
-  const soldPrice=parseFloat(document.getElementById('soldPrice').value);
-  const platform=document.getElementById('platform').value;
-  await db.collection('sales').add({productId,soldPrice,platform,date:new Date()});
-  e.target.reset();
-});
-
-// Show sales
-db.collection('sales').onSnapshot(async snap=>{
-  const list=document.getElementById('salesList'); list.innerHTML='';
-  const products=await db.collection('products').get();
-  const productMap={}; products.forEach(p=>productMap[p.id]=p.data().name);
-
-  const sales=[];
-  snap.forEach(doc=>{
-    const s=doc.data(); sales.push({...s,id:doc.id});
-    const li=document.createElement('li');
-    li.className='list-group-item d-flex justify-content-between align-items-center';
-    li.textContent=`${productMap[s.productId]} sold at $${s.soldPrice} on ${s.platform}`;
-    const btn=document.createElement('button');
-    btn.className='btn btn-sm btn-danger'; btn.textContent='Delete';
-    btn.onclick=()=>db.collection('sales').doc(doc.id).delete();
-    li.appendChild(btn);
-    list.appendChild(li);
-  });
-
-  updateCharts(sales);
-});
-
-// Charts
-function updateCharts(sales){
-  const ctx=document.getElementById('salesChart').getContext('2d');
-  const platformCtx=document.getElementById('platformChart').getContext('2d');
-  const revenueByPlatform={TikTok:0,eBay:0,Vinted:0,Cash:0,Facebook:0,Depop:0};
-  sales.forEach(s=>revenueByPlatform[s.platform]+=s.soldPrice);
-
-  if(salesChart) salesChart.destroy();
-  if(platformChart) platformChart.destroy();
-
-  salesChart=new Chart(ctx,{type:'bar',
-    data:{labels:sales.map(s=>new Date(s.date.seconds*1000).toLocaleDateString()),
-          datasets:[{label:'Revenue',data:sales.map(s=>s.soldPrice),backgroundColor:'rgba(54,162,235,0.6)'}]}});
-  platformChart=new Chart(platformCtx,{type:'doughnut',
-    data:{labels:Object.keys(revenueByPlatform),datasets:[{data:Object.values(revenueByPlatform),backgroundColor:['#000','#0064D2','#f5a623','#28a745','#1877F2','#000']}]},
-    options:{plugins:{legend:{position:'bottom'}}}});
+/* ===== Delete Product ===== */
+async function deleteProduct(id){
+  await db.collection('products').doc(id).delete();
 }
 
-// Export PDF
+/* ===== Add Sale ===== */
+const addSaleForm = document.getElementById('addSaleForm');
+addSaleForm.addEventListener('submit', async (e)=>{
+  e.preventDefault();
+  const prodId = saleProduct.value;
+  const prod = await db.collection('products').doc(prodId).get();
+  const cost = prod.data().cost;
+  const sold = parseFloat(soldPrice.value);
+  const profit = sold - cost;
+  await db.collection('sales').add({
+    product: prod.data().name,
+    sold: sold,
+    platform: platform.value,
+    profit: profit
+  });
+  addSaleForm.reset();
+});
+
+/* ===== Render Sales ===== */
+const salesTable = document.getElementById('salesTable');
+db.collection('sales').onSnapshot(snapshot=>{
+  salesTable.innerHTML='';
+  let totalSales=0, totalRevenue=0, totalProfit=0;
+  snapshot.forEach(doc=>{
+    const s = doc.data();
+    totalSales++; totalRevenue+=s.sold; totalProfit+=s.profit;
+    salesTable.innerHTML+=`<tr>
+      <td>${s.product}</td><td>£${s.sold}</td><td>${s.platform}</td><td>£${s.profit}</td>
+      <td><button class="btn btn-sm btn-danger" onclick="deleteSale('${doc.id}')">Delete</button></td>
+    </tr>`;
+  });
+  document.getElementById('totalSales').innerText=totalSales;
+  document.getElementById('totalRevenue').innerText='£'+totalRevenue.toFixed(2);
+  document.getElementById('avgMargin').innerText=((totalProfit/totalRevenue)*100||0).toFixed(1)+'%';
+});
+
+/* ===== Delete Sale ===== */
+async function deleteSale(id){
+  await db.collection('sales').doc(id).delete();
+}
+
+/* ===== Dashboard Products Count ===== */
+db.collection('products').onSnapshot(snapshot=>{
+  document.getElementById('totalProducts').innerText=snapshot.size;
+});
+
+/* ===== Reports Export ===== */
+async function exportExcel(){
+  const [productsSnap,salesSnap]=await Promise.all([db.collection('products').get(), db.collection('sales').get()]);
+  const products=[], sales=[];
+  productsSnap.forEach(d=>products.push(d.data()));
+  salesSnap.forEach(d=>sales.push(d.data()));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(products),"Products");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(sales),"Sales");
+  XLSX.writeFile(wb,"POS_Report.xlsx");
+}
 async function exportPDF(){
   const { jsPDF } = window.jspdf;
   const doc=new jsPDF();
-  doc.text("Products",10,10);
+  let y=10;
+  doc.text("Products",10,y); y+=10;
   const products=await db.collection('products').get();
-  let y=20;
-  products.forEach(p=>{let d=p.data();doc.text(`${d.name} - Cost: ${d.cost} - Units: ${d.units}`,10,y);y+=10;});
+  products.forEach(p=>{doc.text(`${p.data().name} - £${p.data().cost} - Units: ${p.data().units}`,10,y); y+=10;});
   y+=10; doc.text("Sales",10,y); y+=10;
   const sales=await db.collection('sales').get();
-  sales.forEach(s=>{let d=s.data();doc.text(`${d.productId} - Sold: ${d.soldPrice} - ${d.platform}`,10,y);y+=10;});
-  doc.save("POS_Data.pdf");
-}
-
-// Export Excel
-async function exportExcel(){
-  const products=await db.collection('products').get();
-  const sales=await db.collection('sales').get();
-  const productData=products.docs.map(p=>p.data());
-  const salesData=sales.docs.map(s=>s.data());
-  const wb=XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(productData),"Products");
-  XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(salesData),"Sales");
-  XLSX.writeFile(wb,"POS_Data.xlsx");
+  sales.forEach(s=>{doc.text(`${s.data().product} - £${s.data().sold} - ${s.data().platform} - Profit: £${s.data().profit}`,10,y); y+=10;});
+  doc.save("POS_Report.pdf");
 }
 </script>
 </body>
