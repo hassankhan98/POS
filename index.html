@@ -1,218 +1,911 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>POS Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <!-- Bootstrap -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-  <!-- FileSaver + XLSX + jsPDF -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <style>
-    body { background:#f8f9fc; }
-    .sidebar { height:100vh; background:#343a40; color:#fff; padding:1rem; position:fixed; }
-    .sidebar a { color:#adb5bd; display:block; margin:0.5rem 0; text-decoration:none; }
-    .sidebar a.active, .sidebar a:hover { color:#fff; }
-    .content { margin-left:220px; padding:2rem; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Sales Manager | Professional Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary: #4a6cf7;
+            --primary-dark: #3b5be3;
+            --secondary: #6c757d;
+            --success: #198754;
+            --info: #0dcaf0;
+            --warning: #ffc107;
+            --danger: #dc3545;
+            --light: #f8f9fa;
+            --dark: #212529;
+            --sidebar-bg: #1e2a4a;
+            --sidebar-hover: #2d3e63;
+            --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.04);
+            --header-height: 70px;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f5f7f9;
+            color: #4a5568;
+            overflow-x: hidden;
+        }
+
+        /* Sidebar Styling */
+        .sidebar {
+            position: fixed;
+            width: 250px;
+            height: 100vh;
+            background: var(--sidebar-bg);
+            color: white;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar-brand {
+            padding: 20px 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+        }
+
+        .sidebar-brand h4 {
+            font-weight: 600;
+            margin: 0;
+            font-size: 1.3rem;
+        }
+
+        .sidebar-nav {
+            padding: 15px 0;
+        }
+
+        .nav-link {
+            color: rgba(255, 255, 255, 0.7);
+            padding: 12px 20px;
+            margin: 5px 10px;
+            border-radius: 6px;
+            transition: all 0.2s;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            background: var(--sidebar-hover);
+            color: white;
+        }
+
+        .nav-link i {
+            margin-right: 12px;
+            font-size: 18px;
+            width: 20px;
+            text-align: center;
+        }
+
+        /* Main Content */
+        .main-content {
+            margin-left: 250px;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .topbar {
+            background: white;
+            height: var(--header-height);
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: var(--card-shadow);
+            position: sticky;
+            top: 0;
+            z-index: 999;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+        }
+
+        .user-profile img {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+            object-fit: cover;
+        }
+
+        /* Cards */
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: var(--card-shadow);
+            margin-bottom: 24px;
+            background: white;
+        }
+
+        .card-header {
+            background: white;
+            border-bottom: 1px solid #edf2f7;
+            padding: 15px 20px;
+            font-weight: 600;
+            color: var(--dark);
+            border-radius: 10px 10px 0 0 !important;
+        }
+
+        .card-body {
+            padding: 20px;
+        }
+
+        /* Stats Cards */
+        .stat-card {
+            position: relative;
+            overflow: hidden;
+            border-left: 4px solid;
+        }
+
+        .stat-card.primary { border-left-color: var(--primary); }
+        .stat-card.success { border-left-color: var(--success); }
+        .stat-card.info { border-left-color: var(--info); }
+        .stat-card.warning { border-left-color: var(--warning); }
+
+        .stat-card .card-body {
+            padding: 15px;
+        }
+
+        .stat-card-icon {
+            position: absolute;
+            right: 15px;
+            top: 15px;
+            font-size: 28px;
+            opacity: 0.2;
+        }
+
+        .stat-card.primary .stat-card-icon { color: var(--primary); }
+        .stat-card.success .stat-card-icon { color: var(--success); }
+        .stat-card.info .stat-card-icon { color: var(--info); }
+        .stat-card.warning .stat-card-icon { color: var(--warning); }
+
+        .stat-card h6 {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--secondary);
+        }
+
+        .stat-card h3 {
+            font-weight: 700;
+            margin-bottom: 0;
+            color: var(--dark);
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background-color: var(--primary);
+            border-color: var(--primary);
+            padding: 8px 16px;
+            font-weight: 500;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+            border-color: var(--primary-dark);
+        }
+
+        /* Tables */
+        .table {
+            border-collapse: separate;
+            border-spacing: 0;
+            width: 100%;
+        }
+
+        .table th {
+            font-weight: 600;
+            color: var(--secondary);
+            background-color: #f8f9fa;
+            padding: 12px 15px;
+            border-top: 1px solid #edf2f7;
+        }
+
+        .table td {
+            padding: 12px 15px;
+            vertical-align: middle;
+            border-top: 1px solid #edf2f7;
+        }
+
+        .table tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        /* Forms */
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: var(--dark);
+        }
+
+        .form-control, .form-select {
+            padding: 10px 15px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(74, 108, 247, 0.15);
+        }
+
+        /* Platform badges */
+        .platform-badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .platform-tiktok { background-color: #000; color: white; }
+        .platform-ebay { background-color: #0064D2; color: white; }
+        .platform-vinted { background-color: #f5a623; color: black; }
+        .platform-cash { background-color: #28a745; color: white; }
+        .platform-fb { background-color: #1877F2; color: white; }
+        .platform-depop { background-color: #000; color: white; }
+
+        /* Profit indicators */
+        .profit-positive { color: var(--success); font-weight: 600; }
+        .profit-negative { color: var(--danger); font-weight: 600; }
+
+        /* Content sections */
+        .content-section {
+            display: none;
+            padding: 20px;
+        }
+
+        .content-section.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Charts */
+        .dashboard-chart {
+            height: 300px;
+        }
+
+        /* Responsive */
+        @media (max-width: 992px) {
+            .sidebar {
+                margin-left: -250px;
+            }
+            .sidebar.active {
+                margin-left: 0;
+            }
+            .main-content {
+                margin-left: 0;
+            }
+            .sidebar-toggler {
+                display: block !important;
+            }
+        }
+
+        .sidebar-toggler {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--dark);
+            cursor: pointer;
+        }
+    </style>
 </head>
 <body>
-<div class="sidebar">
-  <h4>POS System</h4>
-  <a href="#" class="active" onclick="showSection('dashboard')">Dashboard</a>
-  <a href="#" onclick="showSection('products')">Products</a>
-  <a href="#" onclick="showSection('sales')">Sales</a>
-  <a href="#" onclick="showSection('reports')">Reports</a>
-</div>
-
-<div class="content">
-  <!-- Dashboard -->
-  <div id="dashboard" class="section">
-    <h2>Dashboard</h2>
-    <div class="row mb-4">
-      <div class="col-md-3"><div class="card p-3"><h5>Total Products</h5><p id="totalProducts">0</p></div></div>
-      <div class="col-md-3"><div class="card p-3"><h5>Total Sales</h5><p id="totalSales">0</p></div></div>
-      <div class="col-md-3"><div class="card p-3"><h5>Total Revenue</h5><p id="totalRevenue">£0</p></div></div>
-      <div class="col-md-3"><div class="card p-3"><h5>Avg Margin</h5><p id="avgMargin">0%</p></div></div>
-    </div>
-    <canvas id="salesChart"></canvas>
-  </div>
-
-  <!-- Products -->
-  <div id="products" class="section d-none">
-    <h2>Products</h2>
-    <form id="addProductForm" class="mb-3">
-      <div class="row">
-        <div class="col"><input class="form-control" placeholder="Product Name" id="productName" required></div>
-        <div class="col"><input class="form-control" placeholder="Cost Price" type="number" id="costPrice" required></div>
-        <div class="col"><input class="form-control" placeholder="Units" type="number" id="units" required></div>
-        <div class="col"><button class="btn btn-primary" type="submit">Add Product</button></div>
-      </div>
-    </form>
-    <table class="table table-bordered"><thead><tr><th>Name</th><th>Cost</th><th>Units</th><th>Action</th></tr></thead><tbody id="productTable"></tbody></table>
-  </div>
-
-  <!-- Sales -->
-  <div id="sales" class="section d-none">
-    <h2>Sales</h2>
-    <form id="addSaleForm" class="mb-3">
-      <div class="row">
-        <div class="col"><select class="form-control" id="saleProduct"></select></div>
-        <div class="col"><input class="form-control" placeholder="Sold Price" type="number" id="soldPrice" required></div>
-        <div class="col">
-          <select class="form-control" id="platform">
-            <option value="TikTok">TikTok</option>
-            <option value="eBay">eBay</option>
-            <option value="Vinted">Vinted</option>
-            <option value="Cash">Cash</option>
-            <option value="Facebook">Facebook</option>
-            <option value="Depop">Depop</option>
-          </select>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="sidebar-brand">
+            <h4><i class="fas fa-chart-line me-2"></i> SalesPro</h4>
         </div>
-        <div class="col"><button class="btn btn-success" type="submit">Record Sale</button></div>
-      </div>
-    </form>
-    <table class="table table-bordered"><thead><tr><th>Product</th><th>Sold Price</th><th>Platform</th><th>Profit</th><th>Action</th></tr></thead><tbody id="salesTable"></tbody></table>
-  </div>
+        <ul class="nav flex-column sidebar-nav">
+            <li class="nav-item">
+                <a class="nav-link active" href="#" data-section="dashboard">
+                    <i class="fas fa-tachometer-alt"></i> Dashboard
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" data-section="add-products">
+                    <i class="fas fa-box"></i> Products
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" data-section="sales-record">
+                    <i class="fas fa-shopping-cart"></i> Sales
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#" data-section="profit-margin">
+                    <i class="fas fa-chart-pie"></i> Analytics
+                </a>
+            </li>
+            <li class="nav-item mt-4">
+                <a class="nav-link" href="#">
+                    <i class="fas fa-cog"></i> Settings
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="#">
+                    <i class="fas fa-question-circle"></i> Help
+                </a>
+            </li>
+        </ul>
+    </div>
 
-  <!-- Reports -->
-  <div id="reports" class="section d-none">
-    <h2>Reports</h2>
-    <button class="btn btn-danger me-2" onclick="exportPDF()">Export PDF</button>
-    <button class="btn btn-success" onclick="exportExcel()">Export Excel</button>
-  </div>
-</div>
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Topbar -->
+        <div class="topbar">
+            <button class="sidebar-toggler">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="user-profile">
+                <img src="https://ui-avatars.com/api/?name=Admin+User&background=4a6cf7&color=fff" alt="Admin User">
+                <span>Admin User</span>
+            </div>
+        </div>
 
-<script>
-/* ===== Firebase Setup ===== */
-const firebaseConfig = {
-  apiKey: "AIzaSyBgG89RoBGc-Gqe2TYnO_iPSdtc8XxQwJw",
-  authDomain: "pos-web-app-ed7e9.firebaseapp.com",
-  projectId: "pos-web-app-ed7e9",
-  storageBucket: "pos-web-app-ed7e9.appspot.com",
-  messagingSenderId: "386790885396",
-  appId: "1:386790885396:web:83955d99b689cf377ebf01"
-};
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+        <!-- Dashboard Section -->
+        <div id="dashboard" class="content-section active">
+            <div class="container-fluid">
+                <!-- Stats Row -->
+                <div class="row">
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card stat-card primary h-100">
+                            <div class="card-body">
+                                <h6>Total Products</h6>
+                                <h3 id="total-products">0</h3>
+                                <div class="stat-card-icon">
+                                    <i class="fas fa-boxes"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card stat-card success h-100">
+                            <div class="card-body">
+                                <h6>Total Sales</h6>
+                                <h3 id="total-sales">0</h3>
+                                <div class="stat-card-icon">
+                                    <i class="fas fa-shopping-cart"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card stat-card info h-100">
+                            <div class="card-body">
+                                <h6>Total Revenue</h6>
+                                <h3 id="total-revenue">$0.00</h3>
+                                <div class="stat-card-icon">
+                                    <i class="fas fa-dollar-sign"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xl-3 col-md-6 mb-4">
+                        <div class="card stat-card warning h-100">
+                            <div class="card-body">
+                                <h6>Avg. Profit Margin</h6>
+                                <h3 id="avg-margin">0%</h3>
+                                <div class="stat-card-icon">
+                                    <i class="fas fa-percent"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-/* ===== UI Navigation ===== */
-function showSection(id){
-  document.querySelectorAll('.section').forEach(sec=>sec.classList.add('d-none'));
-  document.getElementById(id).classList.remove('d-none');
-  document.querySelectorAll('.sidebar a').forEach(a=>a.classList.remove('active'));
-  event.target.classList.add('active');
-}
+                <!-- Charts Row -->
+                <div class="row">
+                    <div class="col-lg-8">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="m-0">Sales Overview</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="salesChart" class="dashboard-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="m-0">Sales by Platform</h5>
+                            </div>
+                            <div class="card-body">
+                                <canvas id="platformChart" class="dashboard-chart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-/* ===== Add Product ===== */
-const addProductForm = document.getElementById('addProductForm');
-addProductForm.addEventListener('submit', async (e)=>{
-  e.preventDefault();
-  await db.collection('products').add({
-    name: productName.value,
-    cost: parseFloat(costPrice.value),
-    units: parseInt(units.value)
-  });
-  addProductForm.reset();
-});
+                <!-- Recent Sales -->
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card mb-4">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="m-0">Recent Sales</h5>
+                                <a href="#" class="btn btn-sm btn-outline-primary">View All</a>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover" id="recent-sales-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Product</th>
+                                                <th>Date</th>
+                                                <th>Platform</th>
+                                                <th>Sold Price</th>
+                                                <th>Profit</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-/* ===== Render Products ===== */
-const productTable = document.getElementById('productTable');
-const saleProduct = document.getElementById('saleProduct');
-db.collection('products').onSnapshot(snapshot=>{
-  productTable.innerHTML='';
-  saleProduct.innerHTML='';
-  snapshot.forEach(doc=>{
-    const p = doc.data();
-    productTable.innerHTML+=`<tr>
-      <td>${p.name}</td><td>£${p.cost}</td><td>${p.units}</td>
-      <td><button class="btn btn-sm btn-danger" onclick="deleteProduct('${doc.id}')">Delete</button></td>
-    </tr>`;
-    saleProduct.innerHTML+=`<option value="${doc.id}" data-cost="${p.cost}">${p.name}</option>`;
-  });
-});
+        <!-- Add Products Section -->
+        <div id="add-products" class="content-section">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-lg-5">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="m-0">Add Product</h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="productForm">
+                                    <div class="mb-3">
+                                        <label class="form-label">Product Name</label>
+                                        <input type="text" class="form-control" id="productName" required>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Cost Price</label>
+                                        <input type="number" class="form-control" id="costPrice" required step="0.01">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Selling Price</label>
+                                        <input type="number" class="form-control" id="sellPrice" required step="0.01">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Add Product</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-7">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="m-0">Products List</h5>
+                                <span class="badge bg-primary" id="products-count">0 products</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover" id="productsTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>Cost</th>
+                                                <th>Price</th>
+                                                <th>Margin</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-/* ===== Delete Product ===== */
-async function deleteProduct(id){
-  await db.collection('products').doc(id).delete();
-}
+        <!-- Sales Record Section -->
+        <div id="sales-record" class="content-section">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-lg-5">
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h5 class="m-0">Record Sale</h5>
+                            </div>
+                            <div class="card-body">
+                                <form id="saleForm">
+                                    <div class="mb-3">
+                                        <label class="form-label">Product</label>
+                                        <select class="form-select" id="saleProduct" required></select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Platform</label>
+                                        <select class="form-select" id="salePlatform" required>
+                                            <option value="tiktok">TikTok</option>
+                                            <option value="ebay">eBay</option>
+                                            <option value="vinted">Vinted</option>
+                                            <option value="cash">Cash</option>
+                                            <option value="facebook">Facebook</option>
+                                            <option value="depop">Depop</option>
+                                        </select>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Sold Price</label>
+                                        <input type="number" class="form-control" id="salePrice" required step="0.01">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary">Record Sale</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-7">
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h5 class="m-0">Sales History</h5>
+                                <span class="badge bg-primary" id="sales-count">0 sales</span>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover" id="salesTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Product</th>
+                                                <th>Date</th>
+                                                <th>Platform</th>
+                                                <th>Price</th>
+                                                <th>Profit</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-/* ===== Add Sale ===== */
-const addSaleForm = document.getElementById('addSaleForm');
-addSaleForm.addEventListener('submit', async (e)=>{
-  e.preventDefault();
-  const prodId = saleProduct.value;
-  const prod = await db.collection('products').doc(prodId).get();
-  const cost = prod.data().cost;
-  const sold = parseFloat(soldPrice.value);
-  const profit = sold - cost;
-  await db.collection('sales').add({
-    product: prod.data().name,
-    sold: sold,
-    platform: platform.value,
-    profit: profit
-  });
-  addSaleForm.reset();
-});
+        <!-- Profit Margin Section -->
+        <div id="profit-margin" class="content-section">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="m-0">Profit Analysis</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover" id="profitTable">
+                                        <thead>
+                                            <tr>
+                                                <th>Product</th>
+                                                <th>Total Sold</th>
+                                                <th>Total Revenue</th>
+                                                <th>Total Profit</th>
+                                                <th>Profit Margin</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody></tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-/* ===== Render Sales ===== */
-const salesTable = document.getElementById('salesTable');
-db.collection('sales').onSnapshot(snapshot=>{
-  salesTable.innerHTML='';
-  let totalSales=0, totalRevenue=0, totalProfit=0;
-  snapshot.forEach(doc=>{
-    const s = doc.data();
-    totalSales++; totalRevenue+=s.sold; totalProfit+=s.profit;
-    salesTable.innerHTML+=`<tr>
-      <td>${s.product}</td><td>£${s.sold}</td><td>${s.platform}</td><td>£${s.profit}</td>
-      <td><button class="btn btn-sm btn-danger" onclick="deleteSale('${doc.id}')">Delete</button></td>
-    </tr>`;
-  });
-  document.getElementById('totalSales').innerText=totalSales;
-  document.getElementById('totalRevenue').innerText='£'+totalRevenue.toFixed(2);
-  document.getElementById('avgMargin').innerText=((totalProfit/totalRevenue)*100||0).toFixed(1)+'%';
-});
+    <script>
+        // Navigation
+        const navLinks = document.querySelectorAll('.nav-link');
+        const sections = document.querySelectorAll('.content-section');
+        
+        navLinks.forEach(link => {
+            link.addEventListener('click', e => {
+                e.preventDefault();
+                navLinks.forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+                const target = link.dataset.section;
+                sections.forEach(s => s.classList.remove('active'));
+                document.getElementById(target).classList.add('active');
+                
+                if(target === 'add-products') renderProducts();
+                if(target === 'sales-record') renderSaleProducts();
+                updateDashboard();
+            });
+        });
 
-/* ===== Delete Sale ===== */
-async function deleteSale(id){
-  await db.collection('sales').doc(id).delete();
-}
+        // Mobile sidebar toggler
+        document.querySelector('.sidebar-toggler').addEventListener('click', function() {
+            document.querySelector('.sidebar').classList.toggle('active');
+        });
 
-/* ===== Dashboard Products Count ===== */
-db.collection('products').onSnapshot(snapshot=>{
-  document.getElementById('totalProducts').innerText=snapshot.size;
-});
+        // Storage
+        let products = JSON.parse(localStorage.getItem('products') || '[]');
+        let sales = JSON.parse(localStorage.getItem('sales') || '[]');
 
-/* ===== Reports Export ===== */
-async function exportExcel(){
-  const [productsSnap,salesSnap]=await Promise.all([db.collection('products').get(), db.collection('sales').get()]);
-  const products=[], sales=[];
-  productsSnap.forEach(d=>products.push(d.data()));
-  salesSnap.forEach(d=>sales.push(d.data()));
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(products),"Products");
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(sales),"Sales");
-  XLSX.writeFile(wb,"POS_Report.xlsx");
-}
-async function exportPDF(){
-  const { jsPDF } = window.jspdf;
-  const doc=new jsPDF();
-  let y=10;
-  doc.text("Products",10,y); y+=10;
-  const products=await db.collection('products').get();
-  products.forEach(p=>{doc.text(`${p.data().name} - £${p.data().cost} - Units: ${p.data().units}`,10,y); y+=10;});
-  y+=10; doc.text("Sales",10,y); y+=10;
-  const sales=await db.collection('sales').get();
-  sales.forEach(s=>{doc.text(`${s.data().product} - £${s.data().sold} - ${s.data().platform} - Profit: £${s.data().profit}`,10,y); y+=10;});
-  doc.save("POS_Report.pdf");
-}
-</script>
+        // Add Product
+        document.getElementById('productForm').addEventListener('submit', e => {
+            e.preventDefault();
+            const name = document.getElementById('productName').value;
+            const cost = parseFloat(document.getElementById('costPrice').value);
+            const price = parseFloat(document.getElementById('sellPrice').value);
+            
+            products.push({name, cost, price});
+            localStorage.setItem('products', JSON.stringify(products));
+            document.getElementById('productForm').reset();
+            
+            renderProducts();
+            updateDashboard();
+        });
+
+        // Render Products
+        function renderProducts() {
+            const tbody = document.querySelector('#productsTable tbody');
+            tbody.innerHTML = '';
+            
+            products.forEach(p => {
+                const margin = ((p.price - p.cost) / p.price * 100).toFixed(2);
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${p.name}</td>
+                    <td>$${p.cost.toFixed(2)}</td>
+                    <td>$${p.price.toFixed(2)}</td>
+                    <td class="${margin >= 0 ? 'profit-positive' : 'profit-negative'}">${margin}%</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            document.getElementById('products-count').textContent = `${products.length} products`;
+        }
+
+        // Render Sale Product Options
+        function renderSaleProducts() {
+            const select = document.getElementById('saleProduct');
+            select.innerHTML = '';
+            
+            products.forEach(p => {
+                const opt = document.createElement('option');
+                opt.value = p.name;
+                opt.textContent = p.name;
+                select.appendChild(opt);
+            });
+        }
+
+        // Record Sale
+        document.getElementById('saleForm').addEventListener('submit', e => {
+            e.preventDefault();
+            const productName = document.getElementById('saleProduct').value;
+            const platform = document.getElementById('salePlatform').value;
+            const soldPrice = parseFloat(document.getElementById('salePrice').value);
+            
+            const product = products.find(p => p.name === productName);
+            const profit = soldPrice - product.cost;
+            
+            sales.push({
+                product: productName,
+                platform,
+                price: soldPrice,
+                profit,
+                date: new Date().toLocaleDateString()
+            });
+            
+            localStorage.setItem('sales', JSON.stringify(sales));
+            document.getElementById('saleForm').reset();
+            
+            renderSales();
+            updateDashboard();
+        });
+
+        // Render Sales Table
+        function renderSales() {
+            const tbody = document.querySelector('#salesTable tbody');
+            tbody.innerHTML = '';
+            
+            const recentTbody = document.querySelector('#recent-sales-table tbody');
+            recentTbody.innerHTML = '';
+            
+            // Show only last 5 sales for recent sales table
+            const recentSales = [...sales].reverse().slice(0, 5);
+            
+            recentSales.forEach(s => {
+                const platformClass = `platform-${s.platform}`;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${s.product}</td>
+                    <td>${s.date}</td>
+                    <td><span class="platform-badge ${platformClass}">${s.platform}</span></td>
+                    <td>$${s.price.toFixed(2)}</td>
+                    <td class="${s.profit >= 0 ? 'profit-positive' : 'profit-negative'}">
+                        ${s.profit >= 0 ? '+$' : '-$'}${Math.abs(s.profit).toFixed(2)}
+                    </td>
+                `;
+                recentTbody.appendChild(tr);
+            });
+            
+            sales.forEach(s => {
+                const platformClass = `platform-${s.platform}`;
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${s.product}</td>
+                    <td>${s.date}</td>
+                    <td><span class="platform-badge ${platformClass}">${s.platform}</span></td>
+                    <td>$${s.price.toFixed(2)}</td>
+                    <td class="${s.profit >= 0 ? 'profit-positive' : 'profit-negative'}">
+                        ${s.profit >= 0 ? '+$' : '-$'}${Math.abs(s.profit).toFixed(2)}
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            document.getElementById('sales-count').textContent = `${sales.length} sales`;
+        }
+
+        // Profit Table
+        function renderProfit() {
+            const tbody = document.querySelector('#profitTable tbody');
+            tbody.innerHTML = '';
+            
+            products.forEach(p => {
+                const sold = sales.filter(s => s.product === p.name);
+                const totalSold = sold.length;
+                const totalRevenue = sold.reduce((a, s) => a + s.price, 0);
+                const totalProfit = sold.reduce((a, s) => a + s.profit, 0);
+                const margin = totalRevenue ? ((totalProfit / totalRevenue) * 100).toFixed(2) : 0;
+                
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${p.name}</td>
+                    <td>${totalSold}</td>
+                    <td>$${totalRevenue.toFixed(2)}</td>
+                    <td class="${totalProfit >= 0 ? 'profit-positive' : 'profit-negative'}">
+                        ${totalProfit >= 0 ? '$' : '-$'}${Math.abs(totalProfit).toFixed(2)}
+                    </td>
+                    <td class="${margin >= 0 ? 'profit-positive' : 'profit-negative'}">${margin}%</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Dashboard Stats
+        function updateDashboard() {
+            document.getElementById('total-products').textContent = products.length;
+            document.getElementById('total-sales').textContent = sales.length;
+            
+            const revenue = sales.reduce((a, s) => a + s.price, 0);
+            const totalProfit = sales.reduce((a, s) => a + s.profit, 0);
+            
+            document.getElementById('total-revenue').textContent = '$' + revenue.toFixed(2);
+            
+            const avgMargin = revenue ? ((totalProfit / revenue) * 100).toFixed(2) : 0;
+            document.getElementById('avg-margin').textContent = avgMargin + '%';
+            
+            renderSales();
+            renderProfit();
+            renderCharts();
+        }
+
+        // Charts
+        let salesChart, platformChart;
+        
+        function renderCharts() {
+            const ctx = document.getElementById('salesChart').getContext('2d');
+            const platformCtx = document.getElementById('platformChart').getContext('2d');
+            
+            // Prepare data for sales chart (last 7 days)
+            const dates = [];
+            const revenueByDate = [];
+            
+            // Generate last 7 days
+            for (let i = 6; i >= 0; i--) {
+                const date = new Date();
+                date.setDate(date.getDate() - i);
+                dates.push(date.toLocaleDateString());
+                
+                // Calculate revenue for this date
+                const revenue = sales
+                    .filter(s => s.date === date.toLocaleDateString())
+                    .reduce((a, s) => a + s.price, 0);
+                
+                revenueByDate.push(revenue);
+            }
+            
+            // Prepare data for platform chart
+            const platforms = ['tiktok', 'ebay', 'vinted', 'cash', 'facebook', 'depop'];
+            const platformRevenue = platforms.map(p => 
+                sales.filter(s => s.platform === p).reduce((a, s) => a + s.price, 0)
+            );
+            
+            // Destroy existing charts if they exist
+            if (salesChart) salesChart.destroy();
+            if (platformChart) platformChart.destroy();
+            
+            // Create sales chart
+            salesChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dates,
+                    datasets: [{
+                        label: 'Revenue',
+                        data: revenueByDate,
+                        backgroundColor: 'rgba(74, 108, 247, 0.1)',
+                        borderColor: 'rgba(74, 108, 247, 1)',
+                        borderWidth: 2,
+                        tension: 0.3,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                drawBorder: false
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // Create platform chart
+            platformChart = new Chart(platformCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['TikTok', 'eBay', 'Vinted', 'Cash', 'Facebook', 'Depop'],
+                    datasets: [{
+                        data: platformRevenue,
+                        backgroundColor: [
+                            '#000', '#0064D2', '#f5a623', '#28a745', '#1877F2', '#000'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    },
+                    cutout: '70%'
+                }
+            });
+        }
+
+        // Initial render
+        renderProducts();
+        renderSaleProducts();
+        updateDashboard();
+    </script>
 </body>
 </html>
