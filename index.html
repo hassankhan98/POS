@@ -9,9 +9,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Firebase App (required for all Firebase services) -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <!-- Firebase Firestore -->
-    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
     <!-- SheetJS (for Excel export) -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     <!-- jsPDF (for PDF export) -->
@@ -346,6 +346,15 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+
+        .firebase-error {
+            color: #dc3545;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
     </style>
 </head>
 <body>
@@ -404,6 +413,11 @@
                 <img src="https://ui-avatars.com/api/?name=Admin+User&background=4a6cf7&color=fff" alt="Admin User">
                 <span>Admin User</span>
             </div>
+        </div>
+
+        <!-- Firebase Error Alert (initially hidden) -->
+        <div id="firebaseError" class="firebase-error" style="display: none;">
+            <strong>Firebase Error:</strong> <span id="errorMessage"></span>
         </div>
 
         <!-- Dashboard Section -->
@@ -730,8 +744,28 @@
         };
 
         // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
+        try {
+            firebase.initializeApp(firebaseConfig);
+            console.log("Firebase initialized successfully");
+        } catch (error) {
+            console.error("Firebase initialization error:", error);
+            showError("Firebase initialization failed: " + error.message);
+        }
+        
         const db = firebase.firestore();
+
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.getElementById('firebaseError');
+            const errorMessage = document.getElementById('errorMessage');
+            errorMessage.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        // Hide error message
+        function hideError() {
+            document.getElementById('firebaseError').style.display = 'none';
+        }
 
         // Navigation
         const navLinks = document.querySelectorAll('.nav-link');
@@ -772,6 +806,10 @@
                 renderProducts();
                 renderSaleProducts();
                 updateDashboard();
+                hideError();
+            }).catch((error) => {
+                console.error("Error loading products:", error);
+                showError("Error loading products: " + error.message);
             });
 
             // Load sales
@@ -782,6 +820,10 @@
                 });
                 renderSales();
                 updateDashboard();
+                hideError();
+            }).catch((error) => {
+                console.error("Error loading sales:", error);
+                showError("Error loading sales: " + error.message);
             });
         }
 
@@ -802,21 +844,32 @@
             const price = parseFloat(document.getElementById('sellPrice').value);
             const units = parseInt(document.getElementById('units').value);
             
+            // Validate input
+            if (isNaN(cost) || isNaN(price) || isNaN(units) || cost < 0 || price < 0 || units < 1) {
+                showError("Please enter valid values for cost, price, and units.");
+                addProductText.style.display = 'inline-block';
+                addProductLoader.style.display = 'none';
+                addProductBtn.disabled = false;
+                return;
+            }
+            
             // Add to Firebase
             db.collection("products").add({
-                name, cost, price, units
+                name, cost, price, units, createdAt: firebase.firestore.FieldValue.serverTimestamp()
             })
             .then((docRef) => {
                 console.log("Product added with ID: ", docRef.id);
                 // Add to local array
                 products.push({ id: docRef.id, name, cost, price, units });
                 document.getElementById('productForm').reset();
+                document.getElementById('units').value = 1;
                 renderProducts();
                 updateDashboard();
+                hideError();
             })
             .catch((error) => {
                 console.error("Error adding product: ", error);
-                alert("Error adding product. Please try again.");
+                showError("Error adding product: " + error.message);
             })
             .finally(() => {
                 addProductText.style.display = 'inline-block';
@@ -852,6 +905,14 @@
             const select = document.getElementById('saleProduct');
             select.innerHTML = '';
             
+            if (products.length === 0) {
+                const opt = document.createElement('option');
+                opt.textContent = "No products available";
+                opt.disabled = true;
+                select.appendChild(opt);
+                return;
+            }
+            
             products.forEach(p => {
                 const opt = document.createElement('option');
                 opt.value = p.id;
@@ -876,7 +937,24 @@
             const platform = document.getElementById('salePlatform').value;
             const soldPrice = parseFloat(document.getElementById('salePrice').value);
             
+            // Validate input
+            if (isNaN(soldPrice) || soldPrice <= 0) {
+                showError("Please enter a valid sale price.");
+                recordSaleText.style.display = 'inline-block';
+                recordSaleLoader.style.display = 'none';
+                recordSaleBtn.disabled = false;
+                return;
+            }
+            
             const product = products.find(p => p.id === productId);
+            if (!product) {
+                showError("Selected product not found.");
+                recordSaleText.style.display = 'inline-block';
+                recordSaleLoader.style.display = 'none';
+                recordSaleBtn.disabled = false;
+                return;
+            }
+            
             const profit = soldPrice - product.cost;
             const date = new Date().toLocaleDateString();
             
@@ -887,7 +965,8 @@
                 platform,
                 price: soldPrice,
                 profit,
-                date
+                date,
+                createdAt: firebase.firestore.FieldValue.serverTimestamp()
             })
             .then((docRef) => {
                 console.log("Sale recorded with ID: ", docRef.id);
@@ -904,10 +983,11 @@
                 document.getElementById('saleForm').reset();
                 renderSales();
                 updateDashboard();
+                hideError();
             })
             .catch((error) => {
                 console.error("Error recording sale: ", error);
-                alert("Error recording sale. Please try again.");
+                showError("Error recording sale: " + error.message);
             })
             .finally(() => {
                 recordSaleText.style.display = 'inline-block';
@@ -925,7 +1005,7 @@
             recentTbody.innerHTML = '';
             
             // Show only last 5 sales for recent sales table
-            const recentSales = [...sales].reverse().slice(0, 5);
+            const recentSales = [...sales].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
             
             recentSales.forEach(s => {
                 const platformClass = `platform-${s.platform}`;
@@ -942,7 +1022,10 @@
                 recentTbody.appendChild(tr);
             });
             
-            sales.forEach(s => {
+            // Sort sales by date (newest first) for the sales table
+            const sortedSales = [...sales].sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            sortedSales.forEach(s => {
                 const platformClass = `platform-${s.platform}`;
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
@@ -1017,11 +1100,12 @@
             for (let i = 6; i >= 0; i--) {
                 const date = new Date();
                 date.setDate(date.getDate() - i);
-                dates.push(date.toLocaleDateString());
+                const dateString = date.toLocaleDateString();
+                dates.push(dateString);
                 
                 // Calculate revenue for this date
                 const revenue = sales
-                    .filter(s => s.date === date.toLocaleDateString())
+                    .filter(s => s.date === dateString)
                     .reduce((a, s) => a + s.price, 0);
                 
                 revenueByDate.push(revenue);
