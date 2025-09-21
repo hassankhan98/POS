@@ -1,5 +1,13 @@
-// Simple admin login
-function login() {
+import { db } from "./firebase-config.js";
+import {
+  collection, addDoc, getDocs, doc, getDoc
+} from "https://www.gstatic.com/firebasejs/9.6.11/firebase-firestore.js";
+
+// ---------- LOGIN ----------
+const loginBtn = document.getElementById("loginBtn");
+const logoutBtn = document.getElementById("logoutBtn");
+
+loginBtn.addEventListener("click", () => {
   const user = document.getElementById("username").value;
   const pass = document.getElementById("password").value;
   if (user === "admin" && pass === "admin") {
@@ -10,29 +18,29 @@ function login() {
   } else {
     document.getElementById("loginError").classList.remove("hidden");
   }
-}
+});
 
-function logout() {
+logoutBtn.addEventListener("click", () => {
   document.getElementById("dashboard").classList.add("hidden");
   document.getElementById("loginScreen").classList.remove("hidden");
-}
+});
 
-// Add product
-async function addProduct() {
+// ---------- PRODUCTS ----------
+const addProductBtn = document.getElementById("addProductBtn");
+addProductBtn.addEventListener("click", async () => {
   const name = document.getElementById("productName").value;
   const cost = parseFloat(document.getElementById("costPrice").value);
   const units = parseInt(document.getElementById("units").value);
 
-  if (!name || !cost || !units) return alert("Please fill all fields");
+  if (!name || !cost || !units) return alert("Fill all fields");
 
-  await db.collection("products").add({ name, cost, units });
+  await addDoc(collection(db, "products"), { name, cost, units });
   alert("Product added!");
   loadProducts();
-}
+});
 
-// Load products into dropdown
 async function loadProducts() {
-  const snapshot = await db.collection("products").get();
+  const snapshot = await getDocs(collection(db, "products"));
   const dropdown = document.getElementById("productDropdown");
   dropdown.innerHTML = "";
   snapshot.forEach(doc => {
@@ -43,19 +51,20 @@ async function loadProducts() {
   });
 }
 
-// Add sale
-async function addSale() {
+// ---------- SALES ----------
+const addSaleBtn = document.getElementById("addSaleBtn");
+addSaleBtn.addEventListener("click", async () => {
   const productId = document.getElementById("productDropdown").value;
   const soldPrice = parseFloat(document.getElementById("soldPrice").value);
   const platform = document.getElementById("platform").value;
 
   if (!productId || !soldPrice) return alert("Fill all fields");
 
-  const productDoc = await db.collection("products").doc(productId).get();
+  const productDoc = await getDoc(doc(db, "products", productId));
   const product = productDoc.data();
   const profit = soldPrice - product.cost;
 
-  await db.collection("sales").add({
+  await addDoc(collection(db, "sales"), {
     product: product.name,
     cost: product.cost,
     soldPrice,
@@ -65,12 +74,11 @@ async function addSale() {
 
   alert("Sale recorded!");
   loadSales();
-}
+});
 
-// Load sales
 async function loadSales() {
-  const snapshot = await db.collection("sales").get();
-  const table = document.getElementById("salesTable");
+  const snapshot = await getDocs(collection(db, "sales"));
+  const table = document.getElementById("salesTableBody");
   table.innerHTML = "";
   snapshot.forEach(doc => {
     const sale = doc.data();
@@ -83,20 +91,4 @@ async function loadSales() {
     </tr>`;
     table.innerHTML += row;
   });
-}
-
-// Export PDF
-function exportPDF() {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
-  doc.text("Sales Report", 10, 10);
-  doc.autoTable({ html: "#salesTable" });
-  doc.save("sales-report.pdf");
-}
-
-// Export Excel
-function exportExcel() {
-  const table = document.getElementById("salesTable");
-  const wb = XLSX.utils.table_to_book(table, { sheet: "Sales" });
-  XLSX.writeFile(wb, "sales-report.xlsx");
 }
