@@ -5,21 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>POS Web App</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+  <!-- Firebase v9 (modular SDK) -->
+  <script type="module" src="app.js" defer></script>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body class="bg-gray-900 text-white">
-
   <!-- Login Screen -->
   <div id="loginScreen" class="flex items-center justify-center h-screen">
     <div class="bg-gray-800 p-8 rounded-2xl shadow-lg w-96">
       <h2 class="text-2xl font-bold text-center mb-6">Admin Login</h2>
       <input id="username" type="text" placeholder="Username" class="w-full p-3 mb-4 rounded bg-gray-700 text-white">
       <input id="password" type="password" placeholder="Password" class="w-full p-3 mb-4 rounded bg-gray-700 text-white">
-      <button onclick="login()" class="w-full bg-blue-600 hover:bg-blue-700 p-3 rounded-lg">Login</button>
+      <button id="loginBtn" class="w-full bg-blue-600 hover:bg-blue-700 p-3 rounded-lg">Login</button>
       <p id="loginError" class="text-red-400 mt-3 hidden">Invalid username or password</p>
     </div>
   </div>
@@ -28,7 +26,7 @@
   <div id="dashboard" class="hidden">
     <nav class="bg-gray-800 p-4 flex justify-between items-center">
       <h1 class="text-xl font-bold">POS Web App</h1>
-      <button onclick="logout()" class="bg-red-600 px-4 py-2 rounded-lg">Logout</button>
+      <button id="logoutBtn" class="bg-red-600 px-4 py-2 rounded-lg">Logout</button>
     </nav>
 
     <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -37,7 +35,7 @@
         <input id="productName" type="text" placeholder="Product Name" class="w-full p-2 mb-2 rounded bg-gray-700">
         <input id="costPrice" type="number" placeholder="Cost Price" class="w-full p-2 mb-2 rounded bg-gray-700">
         <input id="units" type="number" placeholder="Units" class="w-full p-2 mb-2 rounded bg-gray-700">
-        <button onclick="addProduct()" class="w-full bg-green-600 hover:bg-green-700 p-2 rounded-lg">Add Product</button>
+        <button id="addProductBtn" class="w-full bg-green-600 hover:bg-green-700 p-2 rounded-lg">Add Product</button>
       </div>
 
       <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
@@ -52,19 +50,19 @@
           <option value="Depop">Depop</option>
           <option value="Cash">Cash</option>
         </select>
-        <button onclick="addSale()" class="w-full bg-blue-600 hover:bg-blue-700 p-2 rounded-lg">Add Sale</button>
+        <button id="addSaleBtn" class="w-full bg-blue-600 hover:bg-blue-700 p-2 rounded-lg">Add Sale</button>
       </div>
 
       <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
         <h2 class="text-lg font-bold mb-3">Export Data</h2>
-        <button onclick="exportPDF()" class="w-full bg-purple-600 hover:bg-purple-700 p-2 rounded-lg mb-2">Download PDF</button>
-        <button onclick="exportExcel()" class="w-full bg-yellow-600 hover:bg-yellow-700 p-2 rounded-lg">Download Excel</button>
+        <button id="pdfBtn" class="w-full bg-purple-600 hover:bg-purple-700 p-2 rounded-lg mb-2">Download PDF</button>
+        <button id="excelBtn" class="w-full bg-yellow-600 hover:bg-yellow-700 p-2 rounded-lg">Download Excel</button>
       </div>
     </div>
 
     <div class="p-6">
       <h2 class="text-xl font-bold mb-4">Sales Records</h2>
-      <table class="w-full border-collapse bg-gray-800 rounded-2xl overflow-hidden">
+      <table class="w-full border-collapse bg-gray-800 rounded-2xl overflow-hidden" id="salesTable">
         <thead>
           <tr class="bg-gray-700">
             <th class="p-3">Product</th>
@@ -74,12 +72,9 @@
             <th class="p-3">Profit</th>
           </tr>
         </thead>
-        <tbody id="salesTable"></tbody>
+        <tbody id="salesTableBody"></tbody>
       </table>
     </div>
   </div>
-
-  <script src="firebase-config.js"></script>
-  <script src="app.js"></script>
 </body>
 </html>
