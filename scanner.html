@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SubDomain Scanner & Nuclei Vulnerability Assessment</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            color: #fff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            padding: 20px 0;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg, #4ecdc4, #00c6ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .description {
+            color: #c5c5c5;
+            max-width: 800px;
+            margin: 0 auto 20px;
+            line-height: 1.6;
+        }
+        
+        .card {
+            background: rgba(30, 30, 40, 0.8);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .tab {
+            padding: 12px 25px;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: all 0.3s ease;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .tab.active {
+            opacity: 1;
+            border-bottom: 3px solid #4ecdc4;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .input-group {
+            display: flex;
+            margin-bottom: 20px;
+        }
+        
+        input[type="text"], input[type="file"] {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 8px 0 0 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 16px;
+        }
+        
+        input[type="file"] {
+            padding: 12px;
+        }
+        
+        .file-input-label {
+            display: inline-block;
+            padding: 15px 25px;
+            border-radius: 0 8px 8px 0;
+            background: linear-gradient(90deg, #4ecdc4, #00c6ff);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            text-align: center;
+        }
+        
+        button {
+            padding: 15px 25px;
+            border: none;
+            border-radius: 0 8px 8px 0;
+            background: linear-gradient(90deg, #4ecdc4, #00c6ff);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover, .file-input-label:hover {
+            opacity: 0.9;
+            transform: translateY(-2px);
+        }
+        
+        .scan-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .option-card {
+            background: rgba(20, 20, 30, 0.8);
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .option-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .option-card.selected {
+            border: 2px solid #4ecdc4;
+        }
+        
+        .results {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        .subdomains, .vulnerabilities {
+            background: rgba(20, 20, 30, 0.8);
+            border-radius: 10px;
+            padding: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        h2 {
+            margin-bottom: 15px;
+            color: #4ecdc4;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        ul {
+            list-style-type: none;
+        }
+        
+        li {
+            padding: 10px;
+            margin-bottom: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .severity {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        
+        .critical {
+            background-color: #ff4757;
+            color: white;
+        }
+        
+        .high {
+            background-color: #ff6b81;
+            color: white;
+        }
+        
+        .medium {
+            background-color: #ffa502;
+            color: black;
+        }
+        
+        .low {
+            background-color: #2ed573;
+            color: black;
+        }
+        
+        .info {
+            background-color: #1e90ff;
+            color: white;
+        }
+        
+        .progress-bar {
+            height: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+        
+        .progress {
+            height: 100%;
+            background: linear-gradient(90deg, #4ecdc4, #00c6ff);
+            width: 0%;
+            transition: width 0.5s ease;
+        }
+        
+        .status {
+            margin-top: 15px;
+            display: flex;
+            justify-content: space-between;
+            color: #a0a0a0;
+        }
+        
+        .filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .filter-btn {
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 14px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .filter-btn.active {
+            background: linear-gradient(90deg, #4ecdc4, #00c6ff);
+        }
+        
+        .uploaded-files {
+            margin-top: 20px;
+        }
+        
+        .file-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .file-name {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .file-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .action-btn {
+            padding: 5px 10px;
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        @media (max-width: 768px) {
+            .results {
+                grid-template-columns: 1fr;
+            }
+            
+            .input-group {
+                flex-direction: column;
+            }
+            
+            input[type="text"], input[type="file"] {
+                border-radius: 8px;
+                margin-bottom: 10px;
+            }
+            
+            button, .file-input-label {
+                border-radius: 8px;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-shield-alt"></i> SubDomain Scanner & Nuclei Assessment</h1>
+            <p class="description">
+                This tool scans for live subdomains and performs vulnerability assessment using Nuclei.
+                Upload your target list or enter a domain to discover subdomains and identify CVEs.
+            </p>
+        </header>
+        
+        <div class="card">
+            <div class="tabs">
+                <div class="tab active" data-tab="domain">Domain Input</div>
+                <div class="tab" data-tab="upload">File Upload</div>
+                <div class="tab" data-tab="options">Scan Options</div>
+            </div>
+            
+            <div class="tab-content active" id="domain-tab">
+                <h2><i class="fas fa-bullseye"></i> Target Domain</h2>
+                <div class="input-group">
+                    <input type="text" id="domainInput" placeholder="Enter domain (e.g., example.com)" value="example.com">
+                    <button id="scanBtn">Start Scan</button>
+                </div>
+            </div>
+            
+            <div class="tab-content" id="upload-tab">
+                <h2><i class="fas fa-file-upload"></i> Upload Target List</h2>
+                <div class="input-group">
+                    <input type="file" id="fileInput" accept=".txt,.csv">
+                    <label class="file-input-label" for="fileInput">
+                        <i class="fas fa-upload"></i> Choose File
+                    </label>
+                </div>
+                <button id="uploadScanBtn" style="border-radius: 8px; margin-top: 10px;">
+                    <i class="fas fa-play"></i> Start Scan with Uploaded File
+                </button>
+                
+                <div class="uploaded-files">
+                    <h3>Uploaded Files</h3>
+                    <div id="fileList">
+                        <p>No files uploaded yet</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="tab-content" id="options-tab">
+                <h2><i class="fas fa-cog"></i> Nuclei Scan Options</h2>
+                <div class="scan-options">
+                    <div class="option-card" data-option="cve">
+                        <i class="fas fa-bug fa-2x"></i>
+                        <h3>CVE Scan</h3>
+                        <p>Scan for known CVEs</p>
+                    </div>
+                    <div class="option-card" data-option="critical">
+                        <i class="fas fa-radiation fa-2x"></i>
+                        <h3>Critical</h3>
+                        <p>Critical severity vulnerabilities</p>
+                    </div>
+                    <div class="option-card" data-option="high">
+                        <i class="fas fa-exclamation-triangle fa-2x"></i>
+                        <h3>High</h3>
+                        <p>High severity vulnerabilities</p>
+                    </div>
+                    <div class="option-card" data-option="medium">
+                        <i class="fas fa-exclamation-circle fa-2x"></i>
+                        <h3>Medium</h3>
+                        <p>Medium severity vulnerabilities</p>
+                    </div>
+                    <div class="option-card" data-option="low">
+                        <i class="fas fa-info-circle fa-2x"></i>
+                        <h3>Low</h3>
+                        <p>Low severity vulnerabilities</p>
+                    </div>
+                    <div class="option-card" data-option="common">
+                        <i class="fas fa-list-alt fa-2x"></i>
+                        <h3>Common Vulns</h3>
+                        <p>Common web vulnerabilities</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="progress-bar">
+                <div class="progress" id="progressBar"></div>
+            </div>
+            <div class="status">
+                <span id="statusText">Ready to scan. Select a target and options.</span>
+                <span id="progressText">0%</span>
+            </div>
+        </div>
+        
+        <div class="filters">
+            <div class="filter-btn active" data-filter="all">All</div>
+            <div class="filter-btn" data-filter="critical">Critical</div>
+            <div class="filter-btn" data-filter="high">High</div>
+            <div class="filter-btn" data-filter="medium">Medium</div>
+            <div class="filter-btn" data-filter="low">Low</div>
+            <div class="filter-btn" data-filter="info">Info</div>
+        </div>
+        
+        <div class="results">
+            <div class="subdomains">
+                <h2><i class="fas fa-sitemap"></i> Live Subdomains</h2>
+                <ul id="subdomainList">
+                    <li>No subdomains found yet</li>
+                </ul>
+            </div>
+            
+            <div class="vulnerabilities">
+                <h2><i class="fas fa-bug"></i> Vulnerabilities Found</h2>
+                <ul id="vulnList">
+                    <li>No vulnerabilities found yet</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const domainInput = document.getElementById('domainInput');
+            const scanBtn = document.getElementById('scanBtn');
+            const fileInput = document.getElementById('fileInput');
+            const uploadScanBtn = document.getElementById('uploadScanBtn');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            const statusText = document.getElementById('statusText');
+            const subdomainList = document.getElementById('subdomainList');
+            const vulnList = document.getElementById('vulnList');
+            const filterBtns = document.querySelectorAll('.filter-btn');
+            const tabs = document.querySelectorAll('.tab');
+            const tabContents = document.querySelectorAll('.tab-content');
+            const optionCards = document.querySelectorAll('.option-card');
+            const fileList = document.getElementById('fileList');
+            
+            // Selected options
+            let selectedOptions = {
+                cve: true,
+                critical: true,
+                high: true,
+                medium: true,
+                low: true,
+                common: true
+            };
+            
+            // Sample data for demonstration
+            const sampleSubdomains = [
+                'api.example.com',
+                'blog.example.com',
+                'dev.example.com',
+                'test.example.com',
+                'admin.example.com',
+                'mail.example.com',
+                'shop.example.com',
+                'support.example.com'
+            ];
+            
+            const sampleVulnerabilities = [
+                { id: 'CVE-2021-44228', name: 'Log4Shell RCE', severity: 'critical', description: 'Remote code execution in Log4j' },
+                { id: 'CVE-2021-34527', name: 'PrintNightmare', severity: 'critical', description: 'Printer spooler RCE vulnerability' },
+                { id: 'CVE-2021-31207', name: 'Exchange Server SSRF', severity: 'high', description: 'Server-side request forgery in Exchange' },
+                { id: 'CVE-2020-1472', name: 'Zerologon', severity: 'high', description: 'Netlogon privilege escalation' },
+                { id: 'CVE-2019-11510', name: 'Pulse Secure VPN RCE', severity: 'high', description: 'Arbitrary file reading in Pulse Secure' },
+                { id: 'CVE-2018-13379', name: 'Fortinet SSL VPN', severity: 'medium', description: 'Path traversal in FortiOS' },
+                { id: 'CVE-2017-11882', name: 'Office RCE', severity: 'medium', description: 'Memory corruption in Office Equation Editor' },
+                { id: 'CVE-2017-0199', name: 'Office RCE', severity: 'medium', description: 'RTF-based exploit in Office' },
+                { id: 'CVE-2021-40444', name: 'MSHTML Engine RCE', severity: 'medium', description: 'Remote code execution via MSHTML' },
+                { id: 'CVE-2021-26855', name: 'ProxyLogon', severity: 'low', description: 'Exchange Server SSRF vulnerability' },
+                { id: 'CVE-2021-27065', name: 'ProxyLogon', severity: 'low', description: 'Exchange Server write vulnerability' },
+                { id: 'XXE-2020-1234', name: 'XML External Entity', severity: 'low', description: 'XXE in document processing' },
+                { id: 'INFO-2021-0001', name: 'Debug Info Leak', severity: 'info', description: 'Debug information exposed' },
+                { id: 'INFO-2021-0002', name: 'Version Disclosure', severity: 'info', description: 'Software version exposed' }
+            ];
+            
+            // Tab functionality
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabId = tab.getAttribute('data-tab');
+                    
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tabContents.forEach(tc => tc.classList.remove('active'));
+                    
+                    tab.classList.add('active');
+                    document.getElementById(`${tabId}-tab`).classList.add('active');
+                });
+            });
+            
+            // Option selection
+            optionCards.forEach(card => {
+                card.addEventListener('click', () => {
+                    const option = card.getAttribute('data-option');
+                    selectedOptions[option] = !selectedOptions[option];
+                    
+                    if (selectedOptions[option]) {
+                        card.classList.add('selected');
+                    } else {
+                        card.classList.remove('selected');
+                    }
+                });
+            });
+            
+            // Initialize option selections
+            optionCards.forEach(card => {
+                const option = card.getAttribute('data-option');
+                if (selectedOptions[option]) {
+                    card.classList.add('selected');
+                }
+            });
+            
+            // File upload handling
+            fileInput.addEventListener('change', function() {
+                if (this.files.length > 0) {
+                    const file = this.files[0];
+                    fileList.innerHTML = `
+                        <div class="file-item">
+                            <div class="file-name">
+                                <i class="fas fa-file"></i>
+                                <span>${file.name}</span>
+                            </div>
+                            <div class="file-actions">
+                                <span class="action-btn">${formatFileSize(file.size)}</span>
+                                <span class="action-btn">Remove</span>
+                            </div>
+                        </div>
+                    `;
+                }
+            });
+            
+            function formatFileSize(bytes) {
+                if (bytes < 1024) return bytes + ' bytes';
+                else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+                else return (bytes / 1048576).toFixed(1) + ' MB';
+            }
+            
+            // Filter functionality
+            let currentFilter = 'all';
+            
+            filterBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    filterBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    currentFilter = btn.getAttribute('data-filter');
+                    displayVulnerabilities();
+                });
+            });
+            
+            function displayVulnerabilities() {
+                vulnList.innerHTML = '';
+                
+                const filteredVulns = currentFilter === 'all' 
+                    ? sampleVulnerabilities 
+                    : sampleVulnerabilities.filter(v => v.severity === currentFilter);
+                
+                if (filteredVulns.length === 0) {
+                    vulnList.innerHTML = '<li>No vulnerabilities found for this filter</li>';
+                    return;
+                }
+                
+                filteredVulns.forEach(vuln => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `
+                        <span class="severity ${vuln.severity}">${vuln.severity.toUpperCase()}</span>
+                        <div>
+                            <strong>${vuln.id}</strong>: ${vuln.name}<br>
+                            <small>${vuln.description}</small>
+                        </div>
+                    `;
+                    vulnList.appendChild(li);
+                });
+            }
+            
+            // Scan simulation
+            scanBtn.addEventListener('click', () => {
+                const domain = domainInput.value.trim();
+                if (!domain) {
+                    alert('Please enter a domain');
+                    return;
+                }
+                
+                startScan(domain);
+            });
+            
+            uploadScanBtn.addEventListener('click', () => {
+                if (!fileInput.files.length) {
+                    alert('Please upload a file first');
+                    return;
+                }
+                
+                startScan('uploaded targets');
+            });
+            
+            function startScan(target) {
+                // Reset UI
+                progressBar.style.width = '0%';
+                progressText.textContent = '0%';
+                subdomainList.innerHTML = '<li>Scanning subdomains...</li>';
+                vulnList.innerHTML = '<li>Scanning for vulnerabilities...</li>';
+                
+                // Get active options
+                const activeOptions = Object.keys(selectedOptions).filter(opt => selectedOptions[opt]);
+                statusText.textContent = `Scanning with options: ${activeOptions.join(', ')}`;
+                
+                // Simulate scanning process
+                simulateScan(target);
+            }
+            
+            function simulateScan(target) {
+                let progress = 0;
+                statusText.textContent = `Scanning ${target}...`;
+                
+                const interval = setInterval(() => {
+                    progress += 2;
+                    if (progress <= 100) {
+                        progressBar.style.width = `${progress}%`;
+                        progressText.textContent = `${progress}%`;
+                        
+                        if (progress === 20) {
+                            statusText.textContent = 'Discovering subdomains...';
+                        } else if (progress === 40) {
+                            statusText.textContent = 'Scanning for CVEs...';
+                        } else if (progress === 60) {
+                            statusText.textContent = 'Checking common vulnerabilities...';
+                        } else if (progress === 80) {
+                            statusText.textContent = 'Categorizing vulnerabilities...';
+                        }
+                    } else {
+                        clearInterval(interval);
+                        statusText.textContent = 'Scan completed!';
+                        
+                        // Display results
+                        displaySubdomains();
+                        displayVulnerabilities();
+                    }
+                }, 100);
+            }
+            
+            function displaySubdomains() {
+                subdomainList.innerHTML = '';
+                
+                sampleSubdomains.forEach(sub => {
+                    const li = document.createElement('li');
+                    li.innerHTML = `<i class="fas fa-globe"></i> ${sub}`;
+                    subdomainList.appendChild(li);
+                });
+            }
+            
+            // Initialize
+            displayVulnerabilities();
+        });
+    </script>
+</body>
+</html>
