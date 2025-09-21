@@ -3,407 +3,1088 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SubDomain Scanner & Nuclei Vulnerability Assessment</title>
+    <title>Product Sales Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        :root {
+            --primary: #4e73df;
+            --secondary: #6f42c1;
+            --success: #1cc88a;
+            --info: #36b9cc;
+            --warning: #f6c23e;
+            --danger: #e74a3b;
+            --light: #f8f9fc;
+            --dark: #5a5c69;
         }
         
         body {
-            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-            color: #fff;
+            background-color: #f8f9fc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .sidebar {
             min-height: 100vh;
-            padding: 20px;
+            background: linear-gradient(180deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
         }
         
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.8);
+            padding: 1rem;
+            margin: 5px 0;
+            border-radius: 5px;
         }
         
-        header {
-            text-align: center;
-            padding: 20px 0;
-            margin-bottom: 30px;
+        .sidebar .nav-link:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
         }
         
-        h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            background: linear-gradient(90deg, #4ecdc4, #00c6ff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        .sidebar .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-weight: 600;
         }
         
-        .description {
-            color: #c5c5c5;
-            max-width: 800px;
-            margin: 0 auto 20px;
-            line-height: 1.6;
+        .sidebar .nav-link i {
+            margin-right: 10px;
+        }
+        
+        .topbar {
+            background-color: white;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            padding: 15px 20px;
         }
         
         .card {
-            background: rgba(30, 30, 40, 0.8);
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 30px;
-            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
-        }
-        
-        .input-group {
-            display: flex;
-            margin-bottom: 20px;
-        }
-        
-        input[type="text"] {
-            flex: 1;
-            padding: 15px;
             border: none;
-            border-radius: 8px 0 0 8px;
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            font-size: 16px;
-        }
-        
-        button {
-            padding: 15px 25px;
-            border: none;
-            border-radius: 0 8px 8px 0;
-            background: linear-gradient(90deg, #4ecdc4, #00c6ff);
-            color: white;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s ease;
-        }
-        
-        button:hover {
-            opacity: 0.9;
-            transform: translateY(-2px);
-        }
-        
-        .results {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-        
-        .subdomains, .vulnerabilities {
-            background: rgba(20, 20, 30, 0.8);
             border-radius: 10px;
-            padding: 20px;
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        
-        h2 {
-            margin-bottom: 15px;
-            color: #4ecdc4;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        ul {
-            list-style-type: none;
-        }
-        
-        li {
-            padding: 10px;
-            margin-bottom: 8px;
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 5px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        
-        .severity {
-            display: inline-block;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        
-        .critical {
-            background-color: #ff4757;
-            color: white;
-        }
-        
-        .high {
-            background-color: #ff6b81;
-            color: white;
-        }
-        
-        .medium {
-            background-color: #ffa502;
-            color: black;
-        }
-        
-        .low {
-            background-color: #2ed573;
-            color: black;
-        }
-        
-        .info {
-            background-color: #1e90ff;
-            color: white;
-        }
-        
-        .progress-bar {
-            height: 10px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 5px;
-            margin-top: 20px;
-            overflow: hidden;
-        }
-        
-        .progress {
-            height: 100%;
-            background: linear-gradient(90deg, #4ecdc4, #00c6ff);
-            width: 0%;
-            transition: width 0.5s ease;
-        }
-        
-        .status {
-            margin-top: 15px;
-            display: flex;
-            justify-content: space-between;
-            color: #a0a0a0;
-        }
-        
-        .filters {
-            display: flex;
-            gap: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.05);
             margin-bottom: 20px;
-            flex-wrap: wrap;
         }
         
-        .filter-btn {
-            padding: 8px 15px;
+        .card-header {
+            background-color: white;
+            border-bottom: 1px solid #e3e6f0;
+            font-weight: 700;
+            color: var(--dark);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary);
+            border-color: var(--primary);
+        }
+        
+        .btn-primary:hover {
+            background-color: #3a5fc8;
+            border-color: #3a5fc8;
+        }
+        
+        .stat-card {
+            border-left: 4px solid;
+            border-radius: 5px;
+        }
+        
+        .stat-card.primary { border-left-color: var(--primary); }
+        .stat-card.success { border-left-color: var(--success); }
+        .stat-card.info { border-left-color: var(--info); }
+        .stat-card.warning { border-left-color: var(--warning); }
+        
+        .content-section {
+            display: none;
+        }
+        
+        .content-section.active {
+            display: block;
+        }
+        
+        .platform-badge {
+            padding: 5px 10px;
             border-radius: 20px;
-            font-size: 14px;
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
-            cursor: pointer;
-            transition: all 0.3s ease;
+            font-size: 0.8rem;
+            font-weight: 600;
         }
         
-        .filter-btn.active {
-            background: linear-gradient(90deg, #4ecdc4, #00c6ff);
-        }
+        .platform-tiktok { background-color: #000; color: white; }
+        .platform-ebay { background-color: #0064D2; color: white; }
+        .platform-vinted { background-color: #f5a623; color: black; }
+        .platform-cash { background-color: #28a745; color: white; }
+        .platform-fb { background-color: #1877F2; color: white; }
+        .platform-depop { background-color: #000; color: white; }
         
-        @media (max-width: 768px) {
-            .results {
-                grid-template-columns: 1fr;
-            }
-            
-            .input-group {
-                flex-direction: column;
-            }
-            
-            input[type="text"] {
-                border-radius: 8px;
-                margin-bottom: 10px;
-            }
-            
-            button {
-                border-radius: 8px;
-            }
+        .profit-positive { color: var(--success); font-weight: 600; }
+        .profit-negative { color: var(--danger); font-weight: 600; }
+        
+        .dashboard-chart {
+            height: 300px;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1><i class="fas fa-shield-alt"></i> SubDomain Scanner & Nuclei Assessment</h1>
-            <p class="description">
-                This tool scans for live subdomains and performs vulnerability assessment using Nuclei.
-                Enter a domain to discover subdomains and identify CVEs and common vulnerabilities categorized by severity.
-            </p>
-        </header>
-        
-        <div class="card">
-            <h2><i class="fas fa-bullseye"></i> Target Domain</h2>
-            <div class="input-group">
-                <input type="text" id="domainInput" placeholder="Enter domain (e.g., example.com)" value="example.com">
-                <button id="scanBtn">Start Scan</button>
-            </div>
-            
-            <div class="progress-bar">
-                <div class="progress" id="progressBar"></div>
-            </div>
-            <div class="status">
-                <span id="statusText">Ready to scan</span>
-                <span id="progressText">0%</span>
-            </div>
-        </div>
-        
-        <div class="filters">
-            <div class="filter-btn active" data-filter="all">All</div>
-            <div class="filter-btn" data-filter="critical">Critical</div>
-            <div class="filter-btn" data-filter="high">High</div>
-            <div class="filter-btn" data-filter="medium">Medium</div>
-            <div class="filter-btn" data-filter="low">Low</div>
-            <div class="filter-btn" data-filter="info">Info</div>
-        </div>
-        
-        <div class="results">
-            <div class="subdomains">
-                <h2><i class="fas fa-sitemap"></i> Live Subdomains</h2>
-                <ul id="subdomainList">
-                    <li>No subdomains found yet</li>
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Sidebar -->
+            <div class="col-md-3 col-lg-2 sidebar px-0">
+                <div class="text-center p-4">
+                    <h4>Sales Manager</h4>
+                </div>
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="#" data-section="dashboard">
+                            <i class="fas fa-tachometer-alt"></i> Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-section="add-products">
+                            <i class="fas fa-box"></i> Add Products
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-section="sales-record">
+                            <i class="fas fa-shopping-cart"></i> Sales Record
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="#" data-section="profit-margin">
+                            <i class="fas fa-chart-line"></i> Profit Margin
+                        </a>
+                    </li>
                 </ul>
             </div>
-            
-            <div class="vulnerabilities">
-                <h2><i class="fas fa-bug"></i> Vulnerabilities Found</h2>
-                <ul id="vulnList">
-                    <li>No vulnerabilities found yet</li>
-                </ul>
+
+            <!-- Main Content -->
+            <div class="col-md-9 col-lg-10 ml-sm-auto px-0">
+                <!-- Topbar -->
+                <div class="topbar mb-4">
+                    <div class="row align-items-center">
+                        <div class="col-md-6">
+                            <h5 class="m-0">Product Sales Management</h5>
+                        </div>
+                        <div class="col-md-6 text-end">
+                            <span class="me-3"><i class="fas fa-user-circle"></i> Admin</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dashboard Section -->
+                <div id="dashboard" class="content-section active px-4">
+                    <div class="row">
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card stat-card primary h-100">
+                                <div class="card-body">
+                                    <div class="row align-items-center">
+                                        <div class="col">
+                                            <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">Total Products</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="total-products">0</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-boxes fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card stat-card success h-100">
+                                <div class="card-body">
+                                    <div class="row align-items-center">
+                                        <div class="col">
+                                            <div class="text-xs font-weight-bold text-success text-uppercase mb-1">Total Sales</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="total-sales">0</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-shopping-cart fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card stat-card info h-100">
+                                <div class="card-body">
+                                    <div class="row align-items-center">
+                                        <div class="col">
+                                            <div class="text-xs font-weight-bold text-info text-uppercase mb-1">Total Revenue</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="total-revenue">$0.00</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-dollar-sign fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-xl-3 col-md-6 mb-4">
+                            <div class="card stat-card warning h-100">
+                                <div class="card-body">
+                                    <div class="row align-items-center">
+                                        <div class="col">
+                                            <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">Avg. Profit Margin</div>
+                                            <div class="h5 mb-0 font-weight-bold text-gray-800" id="avg-margin">0%</div>
+                                        </div>
+                                        <div class="col-auto">
+                                            <i class="fas fa-percent fa-2x text-gray-300"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-lg-8">
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h6 class="m-0 font-weight-bold">Sales Overview</h6>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="salesChart" class="dashboard-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h6 class="m-0 font-weight-bold">Sales by Platform</h6>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="platformChart" class="dashboard-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-12">
+                            <div class="card mb-4">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h6 class="m-0 font-weight-bold">Recent Sales</h6>
+                                    <a href="#" class="btn btn-sm btn-primary" data-section="sales-record">View All</a>
+                                </div>
+                                <div class="card-body">
+                                    <div class="table-responsive">
+                                        <table class="table table-bordered" id="recent-sales-table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Product</th>
+                                                    <th>Date</th>
+                                                    <th>Platform</th>
+                                                    <th>Sold Price</th>
+                                                    <th>Profit</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <!-- Recent sales will be populated here -->
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Add Products Section -->
+                <div id="add-products" class="content-section px-4">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="m-0 font-weight-bold">Add New Product</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="add-product-form">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="product-name" class="form-label">Product Name</label>
+                                        <input type="text" class="form-control" id="product-name" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="product-cost" class="form-label">Cost Price ($)</label>
+                                        <input type="number" step="0.01" class="form-control" id="product-cost" required>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="product-units" class="form-label">Units Available</label>
+                                        <input type="number" class="form-control" id="product-units" required>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="product-category" class="form-label">Category (Optional)</label>
+                                        <input type="text" class="form-control" id="product-category">
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Add Product</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="m-0 font-weight-bold">Product Inventory</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered" id="products-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Product Name</th>
+                                            <th>Cost Price</th>
+                                            <th>Units Available</th>
+                                            <th>Category</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Products will be populated here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sales Record Section -->
+                <div id="sales-record" class="content-section px-4">
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="m-0 font-weight-bold">Record New Sale</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="add-sale-form">
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="sale-product" class="form-label">Select Product</label>
+                                        <select class="form-select" id="sale-product" required>
+                                            <option value="">Select a product</option>
+                                            <!-- Products will be populated here -->
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="sale-price" class="form-label">Sold Price ($)</label>
+                                        <input type="number" step="0.01" class="form-control" id="sale-price" required>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="sale-platform" class="form-label">Platform</label>
+                                        <select class="form-select" id="sale-platform" required>
+                                            <option value="">Select a platform</option>
+                                            <option value="tiktok">TikTok</option>
+                                            <option value="ebay">eBay</option>
+                                            <option value="vinted">Vinted</option>
+                                            <option value="cash">Cash</option>
+                                            <option value="fb">Facebook</option>
+                                            <option value="depop">Depop</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="sale-date" class="form-label">Sale Date</label>
+                                        <input type="date" class="form-control" id="sale-date" required>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary">Record Sale</button>
+                            </form>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="m-0 font-weight-bold">Sales History</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered" id="sales-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Product</th>
+                                            <th>Platform</th>
+                                            <th>Sold Price</th>
+                                            <th>Cost Price</th>
+                                            <th>Profit</th>
+                                            <th>Margin</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Sales will be populated here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Profit Margin Section -->
+                <div id="profit-margin" class="content-section px-4">
+                    <div class="row">
+                        <div class="col-lg-8">
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h5 class="m-0 font-weight-bold">Profit Margin Analysis</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="profitChart" class="dashboard-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-lg-4">
+                            <div class="card mb-4">
+                                <div class="card-header">
+                                    <h5 class="m-0 font-weight-bold">Top Performing Products</h5>
+                                </div>
+                                <div class="card-body">
+                                    <canvas id="topProductsChart" class="dashboard-chart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="m-0 font-weight-bold">Profitability by Platform</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered" id="platform-profit-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Platform</th>
+                                            <th>Total Sales</th>
+                                            <th>Total Revenue</th>
+                                            <th>Total Profit</th>
+                                            <th>Avg. Profit Margin</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Platform profitability will be populated here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="m-0 font-weight-bold">Detailed Profit Analysis</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-bordered" id="profit-analysis-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Product</th>
+                                            <th>Units Sold</th>
+                                            <th>Total Revenue</th>
+                                            <th>Total Cost</th>
+                                            <th>Total Profit</th>
+                                            <th>Avg. Profit Margin</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <!-- Profit analysis will be populated here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <script>
+        // Data storage
+        let products = JSON.parse(localStorage.getItem('products')) || [];
+        let sales = JSON.parse(localStorage.getItem('sales')) || [];
+
+        // DOM Elements
+        const contentSections = document.querySelectorAll('.content-section');
+        const navLinks = document.querySelectorAll('.nav-link');
+
+        // Initialize the application
         document.addEventListener('DOMContentLoaded', function() {
-            const domainInput = document.getElementById('domainInput');
-            const scanBtn = document.getElementById('scanBtn');
-            const progressBar = document.getElementById('progressBar');
-            const progressText = document.getElementById('progressText');
-            const statusText = document.getElementById('statusText');
-            const subdomainList = document.getElementById('subdomainList');
-            const vulnList = document.getElementById('vulnList');
-            const filterBtns = document.querySelectorAll('.filter-btn');
-            
-            // Sample data for demonstration
-            const sampleSubdomains = [
-                'api.example.com',
-                'blog.example.com',
-                'dev.example.com',
-                'test.example.com',
-                'admin.example.com',
-                'mail.example.com',
-                'shop.example.com',
-                'support.example.com'
-            ];
-            
-            const sampleVulnerabilities = [
-                { id: 'CVE-2021-44228', name: 'Log4Shell RCE', severity: 'critical', description: 'Remote code execution in Log4j' },
-                { id: 'CVE-2021-34527', name: 'PrintNightmare', severity: 'critical', description: 'Printer spooler RCE vulnerability' },
-                { id: 'CVE-2021-31207', name: 'Exchange Server SSRF', severity: 'high', description: 'Server-side request forgery in Exchange' },
-                { id: 'CVE-2020-1472', name: 'Zerologon', severity: 'high', description: 'Netlogon privilege escalation' },
-                { id: 'CVE-2019-11510', name: 'Pulse Secure VPN RCE', severity: 'high', description: 'Arbitrary file reading in Pulse Secure' },
-                { id: 'CVE-2018-13379', name: 'Fortinet SSL VPN', severity: 'medium', description: 'Path traversal in FortiOS' },
-                { id: 'CVE-2017-11882', name: 'Office RCE', severity: 'medium', description: 'Memory corruption in Office Equation Editor' },
-                { id: 'CVE-2017-0199', name: 'Office RCE', severity: 'medium', description: 'RTF-based exploit in Office' },
-                { id: 'CVE-2021-40444', name: 'MSHTML Engine RCE', severity: 'medium', description: 'Remote code execution via MSHTML' },
-                { id: 'CVE-2021-26855', name: 'ProxyLogon', severity: 'low', description: 'Exchange Server SSRF vulnerability' },
-                { id: 'CVE-2021-27065', name: 'ProxyLogon', severity: 'low', description: 'Exchange Server write vulnerability' },
-                { id: 'XXE-2020-1234', name: 'XML External Entity', severity: 'low', description: 'XXE in document processing' },
-                { id: 'INFO-2021-0001', name: 'Debug Info Leak', severity: 'info', description: 'Debug information exposed' },
-                { id: 'INFO-2021-0002', name: 'Version Disclosure', severity: 'info', description: 'Software version exposed' }
-            ];
-            
-            // Filter functionality
-            let currentFilter = 'all';
-            
-            filterBtns.forEach(btn => {
-                btn.addEventListener('click', () => {
-                    filterBtns.forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
-                    currentFilter = btn.getAttribute('data-filter');
-                    displayVulnerabilities();
+            // Navigation
+            navLinks.forEach(link => {
+                link.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    const sectionId = this.getAttribute('data-section');
+                    
+                    // Update active nav link
+                    navLinks.forEach(navLink => navLink.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Show corresponding section
+                    contentSections.forEach(section => section.classList.remove('active'));
+                    document.getElementById(sectionId).classList.add('active');
                 });
             });
-            
-            function displayVulnerabilities() {
-                vulnList.innerHTML = '';
-                
-                const filteredVulns = currentFilter === 'all' 
-                    ? sampleVulnerabilities 
-                    : sampleVulnerabilities.filter(v => v.severity === currentFilter);
-                
-                if (filteredVulns.length === 0) {
-                    vulnList.innerHTML = '<li>No vulnerabilities found for this filter</li>';
-                    return;
-                }
-                
-                filteredVulns.forEach(vuln => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `
-                        <span class="severity ${vuln.severity}">${vuln.severity.toUpperCase()}</span>
-                        <div>
-                            <strong>${vuln.id}</strong>: ${vuln.name}<br>
-                            <small>${vuln.description}</small>
-                        </div>
-                    `;
-                    vulnList.appendChild(li);
-                });
-            }
-            
-            // Scan simulation
-            scanBtn.addEventListener('click', () => {
-                const domain = domainInput.value.trim();
-                if (!domain) {
-                    alert('Please enter a domain');
-                    return;
-                }
-                
-                // Reset UI
-                progressBar.style.width = '0%';
-                progressText.textContent = '0%';
-                subdomainList.innerHTML = '<li>Scanning subdomains...</li>';
-                vulnList.innerHTML = '<li>Scanning for vulnerabilities...</li>';
-                
-                // Simulate scanning process
-                simulateScan(domain);
-            });
-            
-            function simulateScan(domain) {
-                let progress = 0;
-                statusText.textContent = 'Finding subdomains...';
-                
-                const interval = setInterval(() => {
-                    progress += 2;
-                    if (progress <= 100) {
-                        progressBar.style.width = `${progress}%`;
-                        progressText.textContent = `${progress}%`;
-                        
-                        if (progress === 20) {
-                            statusText.textContent = 'Scanning for CVEs...';
-                        } else if (progress === 40) {
-                            statusText.textContent = 'Checking common vulnerabilities...';
-                        } else if (progress === 60) {
-                            statusText.textContent = 'Categorizing vulnerabilities...';
-                        } else if (progress === 80) {
-                            statusText.textContent = 'Finalizing results...';
-                        }
-                    } else {
-                        clearInterval(interval);
-                        statusText.textContent = 'Scan completed!';
-                        
-                        // Display results
-                        displaySubdomains(domain);
-                        displayVulnerabilities();
-                    }
-                }, 100);
-            }
-            
-            function displaySubdomains(domain) {
-                subdomainList.innerHTML = '';
-                
-                sampleSubdomains.forEach(sub => {
-                    const li = document.createElement('li');
-                    li.innerHTML = `<i class="fas fa-globe"></i> ${sub}`;
-                    subdomainList.appendChild(li);
-                });
-            }
+
+            // Initialize forms
+            document.getElementById('add-product-form').addEventListener('submit', addProduct);
+            document.getElementById('add-sale-form').addEventListener('submit', recordSale);
+
+            // Load data
+            updateProductsTable();
+            updateSalesTable();
+            updateDashboard();
+            updateProfitAnalysis();
+
+            // Set current date as default for sale date
+            document.getElementById('sale-date').valueAsDate = new Date();
         });
+
+        // Add a new product
+        function addProduct(e) {
+            e.preventDefault();
+            
+            const productName = document.getElementById('product-name').value;
+            const productCost = parseFloat(document.getElementById('product-cost').value);
+            const productUnits = parseInt(document.getElementById('product-units').value);
+            const productCategory = document.getElementById('product-category').value;
+            
+            const product = {
+                id: Date.now(),
+                name: productName,
+                cost: productCost,
+                units: productUnits,
+                category: productCategory,
+                createdAt: new Date().toISOString()
+            };
+            
+            products.push(product);
+            saveProducts();
+            updateProductsTable();
+            updateProductDropdown();
+            updateDashboard();
+            
+            // Reset form
+            document.getElementById('add-product-form').reset();
+            
+            alert('Product added successfully!');
+        }
+
+        // Record a new sale
+        function recordSale(e) {
+            e.preventDefault();
+            
+            const productId = parseInt(document.getElementById('sale-product').value);
+            const salePrice = parseFloat(document.getElementById('sale-price').value);
+            const platform = document.getElementById('sale-platform').value;
+            const saleDate = document.getElementById('sale-date').value;
+            
+            const product = products.find(p => p.id === productId);
+            
+            if (!product) {
+                alert('Please select a valid product.');
+                return;
+            }
+            
+            if (product.units < 1) {
+                alert('This product is out of stock.');
+                return;
+            }
+            
+            const profit = salePrice - product.cost;
+            const margin = (profit / salePrice) * 100;
+            
+            const sale = {
+                id: Date.now(),
+                productId: productId,
+                productName: product.name,
+                costPrice: product.cost,
+                salePrice: salePrice,
+                platform: platform,
+                profit: profit,
+                margin: margin,
+                date: saleDate
+            };
+            
+            // Reduce product units
+            product.units -= 1;
+            
+            sales.push(sale);
+            saveSales();
+            saveProducts();
+            updateSalesTable();
+            updateProductsTable();
+            updateDashboard();
+            updateProfitAnalysis();
+            
+            // Reset form
+            document.getElementById('add-sale-form').reset();
+            document.getElementById('sale-date').valueAsDate = new Date();
+            
+            alert('Sale recorded successfully!');
+        }
+
+        // Update products table
+        function updateProductsTable() {
+            const tableBody = document.getElementById('products-table').querySelector('tbody');
+            tableBody.innerHTML = '';
+            
+            if (products.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="5" class="text-center">No products found</td></tr>';
+                return;
+            }
+            
+            products.forEach(product => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${product.name}</td>
+                    <td>$${product.cost.toFixed(2)}</td>
+                    <td>${product.units}</td>
+                    <td>${product.category || '-'}</td>
+                    <td>
+                        <button class="btn btn-sm btn-danger" onclick="deleteProduct(${product.id})">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+            
+            updateProductDropdown();
+        }
+
+        // Update sales table
+        function updateSalesTable() {
+            const tableBody = document.getElementById('sales-table').querySelector('tbody');
+            const recentSalesBody = document.getElementById('recent-sales-table').querySelector('tbody');
+            tableBody.innerHTML = '';
+            recentSalesBody.innerHTML = '';
+            
+            if (sales.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="7" class="text-center">No sales recorded yet</td></tr>';
+                recentSalesBody.innerHTML = '<tr><td colspan="5" class="text-center">No recent sales</td></tr>';
+                return;
+            }
+            
+            // Sort sales by date (newest first)
+            const sortedSales = [...sales].sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            // Populate sales table
+            sortedSales.forEach(sale => {
+                const saleDate = new Date(sale.date);
+                const formattedDate = saleDate.toLocaleDateString();
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${formattedDate}</td>
+                    <td>${sale.productName}</td>
+                    <td><span class="platform-badge platform-${sale.platform}">${sale.platform}</span></td>
+                    <td>$${sale.salePrice.toFixed(2)}</td>
+                    <td>$${sale.costPrice.toFixed(2)}</td>
+                    <td class="${sale.profit >= 0 ? 'profit-positive' : 'profit-negative'}">$${sale.profit.toFixed(2)}</td>
+                    <td class="${sale.margin >= 0 ? 'profit-positive' : 'profit-negative'}">${sale.margin.toFixed(2)}%</td>
+                `;
+                tableBody.appendChild(row);
+            });
+            
+            // Populate recent sales (last 5)
+            const recentSales = sortedSales.slice(0, 5);
+            recentSales.forEach(sale => {
+                const saleDate = new Date(sale.date);
+                const formattedDate = saleDate.toLocaleDateString();
+                
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${sale.productName}</td>
+                    <td>${formattedDate}</td>
+                    <td><span class="platform-badge platform-${sale.platform}">${sale.platform}</span></td>
+                    <td>$${sale.salePrice.toFixed(2)}</td>
+                    <td class="${sale.profit >= 0 ? 'profit-positive' : 'profit-negative'}">$${sale.profit.toFixed(2)}</td>
+                `;
+                recentSalesBody.appendChild(row);
+            });
+        }
+
+        // Update product dropdown
+        function updateProductDropdown() {
+            const dropdown = document.getElementById('sale-product');
+            const currentValue = dropdown.value;
+            
+            dropdown.innerHTML = '<option value="">Select a product</option>';
+            
+            products.forEach(product => {
+                if (product.units > 0) {
+                    const option = document.createElement('option');
+                    option.value = product.id;
+                    option.textContent = `${product.name} ($${product.cost.toFixed(2)}) - ${product.units} available`;
+                    dropdown.appendChild(option);
+                }
+            });
+            
+            // Try to restore previous selection
+            if (currentValue) {
+                dropdown.value = currentValue;
+            }
+        }
+
+        // Update dashboard
+        function updateDashboard() {
+            // Update stats
+            document.getElementById('total-products').textContent = products.length;
+            document.getElementById('total-sales').textContent = sales.length;
+            
+            const totalRevenue = sales.reduce((sum, sale) => sum + sale.salePrice, 0);
+            document.getElementById('total-revenue').textContent = `$${totalRevenue.toFixed(2)}`;
+            
+            const avgMargin = sales.length > 0 ? 
+                sales.reduce((sum, sale) => sum + sale.margin, 0) / sales.length : 0;
+            document.getElementById('avg-margin').textContent = `${avgMargin.toFixed(2)}%`;
+            
+            // Update charts
+            updateSalesChart();
+            updatePlatformChart();
+        }
+
+        // Update profit analysis
+        function updateProfitAnalysis() {
+            updateProfitChart();
+            updateTopProductsChart();
+            updatePlatformProfitTable();
+            updateProfitAnalysisTable();
+        }
+
+        // Delete a product
+        function deleteProduct(productId) {
+            if (confirm('Are you sure you want to delete this product?')) {
+                products = products.filter(p => p.id !== productId);
+                saveProducts();
+                updateProductsTable();
+                updateProductDropdown();
+                updateDashboard();
+            }
+        }
+
+        // Save products to localStorage
+        function saveProducts() {
+            localStorage.setItem('products', JSON.stringify(products));
+        }
+
+        // Save sales to localStorage
+        function saveSales() {
+            localStorage.setItem('sales', JSON.stringify(sales));
+        }
+
+        // Chart functions
+        function updateSalesChart() {
+            const ctx = document.getElementById('salesChart').getContext('2d');
+            
+            // Group sales by month
+            const monthlySales = {};
+            sales.forEach(sale => {
+                const date = new Date(sale.date);
+                const monthYear = `${date.getMonth() + 1}/${date.getFullYear()}`;
+                
+                if (!monthlySales[monthYear]) {
+                    monthlySales[monthYear] = {
+                        revenue: 0,
+                        profit: 0,
+                        count: 0
+                    };
+                }
+                
+                monthlySales[monthYear].revenue += sale.salePrice;
+                monthlySales[monthYear].profit += sale.profit;
+                monthlySales[monthYear].count += 1;
+            });
+            
+            const labels = Object.keys(monthlySales);
+            const revenueData = labels.map(label => monthlySales[label].revenue);
+            const profitData = labels.map(label => monthlySales[label].profit);
+            
+            if (window.salesChartInstance) {
+                window.salesChartInstance.destroy();
+            }
+            
+            window.salesChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Revenue',
+                            data: revenueData,
+                            borderColor: '#4e73df',
+                            backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Profit',
+                            data: profitData,
+                            borderColor: '#1cc88a',
+                            backgroundColor: 'rgba(28, 200, 138, 0.05)',
+                            fill: true,
+                            tension: 0.3
+                        }
+                    ]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updatePlatformChart() {
+            const ctx = document.getElementById('platformChart').getContext('2d');
+            
+            // Group sales by platform
+            const platformSales = {};
+            sales.forEach(sale => {
+                if (!platformSales[sale.platform]) {
+                    platformSales[sale.platform] = 0;
+                }
+                platformSales[sale.platform] += 1;
+            });
+            
+            const labels = Object.keys(platformSales);
+            const data = labels.map(label => platformSales[label]);
+            
+            const backgroundColors = labels.map(label => {
+                const colors = {
+                    'tiktok': '#000000',
+                    'ebay': '#0064D2',
+                    'vinted': '#f5a623',
+                    'cash': '#28a745',
+                    'fb': '#1877F2',
+                    'depop': '#000000'
+                };
+                return colors[label] || '#36b9cc';
+            });
+            
+            if (window.platformChartInstance) {
+                window.platformChartInstance.destroy();
+            }
+            
+            window.platformChartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: backgroundColors,
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateProfitChart() {
+            const ctx = document.getElementById('profitChart').getContext('2d');
+            
+            // Group profit by month
+            const monthlyProfit = {};
+            sales.forEach(sale => {
+                const date = new Date(sale.date);
+                const monthYear = `${date.getMonth() + 1}/${date.getFullYear()}`;
+                
+                if (!monthlyProfit[monthYear]) {
+                    monthlyProfit[monthYear] = 0;
+                }
+                
+                monthlyProfit[monthYear] += sale.profit;
+            });
+            
+            const labels = Object.keys(monthlyProfit);
+            const data = labels.map(label => monthlyProfit[label]);
+            
+            if (window.profitChartInstance) {
+                window.profitChartInstance.destroy();
+            }
+            
+            window.profitChartInstance = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Profit',
+                        data: data,
+                        backgroundColor: data.map(value => value >= 0 ? '#1cc88a' : '#e74a3b'),
+                        borderColor: data.map(value => value >= 0 ? '#1cc88a' : '#e74a3b'),
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return '$' + value;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateTopProductsChart() {
+            const ctx = document.getElementById('topProductsChart').getContext('2d');
+            
+            // Group sales by product
+            const productSales = {};
+            sales.forEach(sale => {
+                if (!productSales[sale.productName]) {
+                    productSales[sale.productName] = {
+                        profit: 0,
+                        count: 0
+                    };
+                }
+                productSales[sale.productName].profit += sale.profit;
+                productSales[sale.productName].count += 1;
+            });
+            
+            // Get top 5 products by profit
+            const topProducts = Object.entries(productSales)
+                .sort((a, b) => b[1].profit - a[1].profit)
+                .slice(0, 5);
+            
+            const labels = topProducts.map(item => item[0]);
+            const data = topProducts.map(item => item[1].profit);
+            
+            if (window.topProductsChartInstance) {
+                window.topProductsChartInstance.destroy();
+            }
+            
+            window.topProductsChartInstance = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: [
+                            '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b'
+                        ],
+                        hoverOffset: 4
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+
+        function updatePlatformProfitTable() {
+            const tableBody = document.getElementById('platform-profit-table').querySelector('tbody');
+            tableBody.innerHTML = '';
+            
+            // Group sales by platform
+            const platformStats = {};
+            sales.forEach(sale => {
+                if (!platformStats[sale.platform]) {
+                    platformStats[sale.platform] = {
+                        sales: 0,
+                        revenue: 0,
+                        profit: 0,
+                        margins: []
+                    };
+                }
+                
+                platformStats[sale.platform].sales += 1;
+                platformStats[sale.platform].revenue += sale.salePrice;
+                platformStats[sale.platform].profit += sale.profit;
+                platformStats[sale.platform].margins.push(sale.margin);
+            });
+            
+            // Calculate average margin for each platform
+            Object.keys(platformStats).forEach(platform => {
+                const stats = platformStats[platform];
+                stats.avgMargin = stats.margins.length > 0 ? 
+                    stats.margins.reduce((sum, margin) => sum + margin, 0) / stats.margins.length : 0;
+            });
+            
+            // Create table rows
+            Object.entries(platformStats).forEach(([platform, stats]) => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><span class="platform-badge platform-${platform}">${platform}</span></td>
+                    <td>${stats.sales}</td>
+                    <td>$${stats.revenue.toFixed(2)}</td>
+                    <td class="${stats.profit >= 0 ? 'profit-positive' : 'profit-negative'}">$${stats.profit.toFixed(2)}</td>
+                    <td class="${stats.avgMargin >= 0 ? 'profit-positive' : 'profit-negative'}">${stats.avgMargin.toFixed(2)}%</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        function updateProfitAnalysisTable() {
+            const tableBody = document.getElementById('profit-analysis-table').querySelector('tbody');
+            tableBody.innerHTML = '';
+            
+            // Group sales by product
+            const productStats = {};
+            sales.forEach(sale => {
+                if (!productStats[sale.productId]) {
+                    productStats[sale.productId] = {
+                        name: sale.productName,
+                        units: 0,
+                        revenue: 0,
+                        cost: 0,
+                        profit: 0,
+                        margins: []
+                    };
+                }
+                
+                productStats[sale.productId].units += 1;
+                productStats[sale.productId].revenue += sale.salePrice;
+                productStats[sale.productId].cost += sale.costPrice;
+                productStats[sale.productId].profit += sale.profit;
+                productStats[sale.productId].margins.push(sale.margin);
+            });
+            
+            // Calculate average margin for each product
+            Object.keys(productStats).forEach(productId => {
+                const stats = productStats[productId];
+                stats.avgMargin = stats.margins.length > 0 ? 
+                    stats.margins.reduce((sum, margin) => sum + margin, 0) / stats.margins.length : 0;
+            });
+            
+            // Create table rows
+            Object.values(productStats).forEach(stats => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${stats.name}</td>
+                    <td>${stats.units}</td>
+                    <td>$${stats.revenue.toFixed(2)}</td>
+                    <td>$${stats.cost.toFixed(2)}</td>
+                    <td class="${stats.profit >= 0 ? 'profit-positive' : 'profit-negative'}">$${stats.profit.toFixed(2)}</td>
+                    <td class="${stats.avgMargin >= 0 ? 'profit-positive' : 'profit-negative'}">${stats.avgMargin.toFixed(2)}%</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
     </script>
 </body>
 </html>
