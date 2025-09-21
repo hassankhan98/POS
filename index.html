@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>POS Web App</title>
+<title>POS Dashboard</title>
 <link rel="stylesheet" href="style.css">
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
@@ -13,40 +13,47 @@
 </head>
 <body>
 <div class="container">
-  <h1>POS Web App</h1>
+  <h1>POS Dashboard</h1>
 
-  <!-- Add Product -->
-  <div>
-    <h2>Add Product</h2>
-    <input type="text" id="productName" placeholder="Product Name">
-    <input type="number" id="productUnits" placeholder="Units">
-    <input type="number" id="productCost" placeholder="Cost Price">
-    <button onclick="addProduct()">Add Product</button>
+  <div class="grid">
+    <!-- Products Panel -->
+    <div class="card">
+      <h2>Products</h2>
+      <input type="text" id="productName" placeholder="Product Name">
+      <input type="number" id="productUnits" placeholder="Units">
+      <input type="number" id="productCost" placeholder="Cost Price">
+      <button onclick="addProduct()">Add Product</button>
+
+      <h3>Existing Products</h3>
+      <ul id="productList"></ul>
+    </div>
+
+    <!-- Sales Panel -->
+    <div class="card">
+      <h2>Sales</h2>
+      <select id="saleProduct">
+        <option value="">Select Product</option>
+      </select>
+      <input type="number" id="salePrice" placeholder="Sold Price">
+      <select id="salePlatform">
+        <option value="">Platform</option>
+        <option value="TikTok">TikTok</option>
+        <option value="eBay">eBay</option>
+        <option value="Vinted">Vinted</option>
+        <option value="Cash">Cash</option>
+        <option value="Facebook">Facebook</option>
+        <option value="Depop">Depop</option>
+      </select>
+      <button onclick="addSale()">Record Sale</button>
+
+      <h3>Sales History</h3>
+      <ul id="salesList"></ul>
+    </div>
   </div>
 
-  <!-- Record Sale -->
-  <div>
-    <h2>Record Sale</h2>
-    <select id="saleProduct">
-      <option value="">Select Product</option>
-    </select>
-    <input type="number" id="salePrice" placeholder="Sold Price">
-    <select id="salePlatform">
-      <option value="">Platform</option>
-      <option value="TikTok">TikTok</option>
-      <option value="eBay">eBay</option>
-      <option value="Vinted">Vinted</option>
-      <option value="Cash">Cash</option>
-      <option value="Facebook">Facebook</option>
-      <option value="Depop">Depop</option>
-    </select>
-    <button onclick="addSale()">Record Sale</button>
-  </div>
-
-  <!-- Sales Report -->
-  <div>
-    <h2>Sales Report</h2>
-    <ul id="salesList"></ul>
+  <!-- Reports -->
+  <div class="card">
+    <h2>Reports</h2>
     <button onclick="exportExcel()">Download Excel</button>
     <button onclick="exportPDF()">Download PDF</button>
   </div>
@@ -56,31 +63,34 @@
 const productsRef = db.collection("products");
 const salesRef = db.collection("sales");
 
-// Load products dropdown
+// --- Load Products ---
 function loadProducts() {
-  productsRef.get().then(snapshot => {
+  productsRef.onSnapshot(snapshot => {
     const select = document.getElementById("saleProduct");
+    const list = document.getElementById("productList");
     select.innerHTML = '<option value="">Select Product</option>';
+    list.innerHTML = '';
     snapshot.forEach(doc => {
       const data = doc.data();
-      select.innerHTML += `<option value="${data.name}" data-cost="${data.cost}">${data.name}</option>`;
+      select.innerHTML += `<option value="${data.name}" data-cost="${data.cost}" data-id="${doc.id}">${data.name}</option>`;
+      list.innerHTML += `<li>${data.name} | Units: ${data.units} | Cost: £${data.cost} <button onclick="removeProduct('${doc.id}')">Remove</button></li>`;
     });
   });
 }
 
-// Load sales report
+// --- Load Sales ---
 function loadSales() {
-  salesRef.get().then(snapshot => {
+  salesRef.onSnapshot(snapshot => {
     const list = document.getElementById("salesList");
     list.innerHTML = '';
     snapshot.forEach(doc => {
       const s = doc.data();
-      list.innerHTML += `<li>${s.product} | Sold: £${s.price} | Platform: ${s.platform} | Profit: £${s.profit}</li>`;
+      list.innerHTML += `<li>${s.product} | Sold: £${s.price} | ${s.platform} | Profit: £${s.profit} <button onclick="removeSale('${doc.id}')">Remove</button></li>`;
     });
   });
 }
 
-// Add product
+// --- Add Product ---
 function addProduct() {
   const name = document.getElementById("productName").value;
   const units = parseInt(document.getElementById("productUnits").value);
@@ -88,26 +98,41 @@ function addProduct() {
   if(!name || !units || !cost) return alert("Fill all fields");
 
   productsRef.add({ name, units, cost })
-    .then(() => { alert("Product added"); loadProducts(); })
+    .then(() => { alert("Product added"); document.getElementById("productName").value=""; document.getElementById("productUnits").value=""; document.getElementById("productCost").value=""; })
     .catch(err => alert(err));
 }
 
-// Add sale
+// --- Add Sale ---
 function addSale() {
-  const product = document.getElementById("saleProduct");
+  const productSelect = document.getElementById("saleProduct");
+  const productName = productSelect.value;
   const price = parseFloat(document.getElementById("salePrice").value);
   const platform = document.getElementById("salePlatform").value;
-  if(!product.value || !price || !platform) return alert("Fill all fields");
+  if(!productName || !price || !platform) return alert("Fill all fields");
 
-  const cost = parseFloat(product.selectedOptions[0].dataset.cost);
+  const cost = parseFloat(productSelect.selectedOptions[0].dataset.cost);
   const profit = price - cost;
 
-  salesRef.add({ product: product.value, price, platform, profit })
-    .then(() => { alert("Sale recorded"); loadSales(); })
+  salesRef.add({ product: productName, price, platform, profit })
+    .then(() => { alert("Sale recorded"); document.getElementById("salePrice").value=""; document.getElementById("salePlatform").value=""; })
     .catch(err => alert(err));
 }
 
-// Export Excel
+// --- Remove Product ---
+function removeProduct(id) {
+  if(confirm("Are you sure you want to remove this product?")) {
+    productsRef.doc(id).delete();
+  }
+}
+
+// --- Remove Sale ---
+function removeSale(id) {
+  if(confirm("Are you sure you want to remove this sale?")) {
+    salesRef.doc(id).delete();
+  }
+}
+
+// --- Export Excel ---
 function exportExcel() {
   salesRef.get().then(snapshot => {
     const data = snapshot.docs.map(doc => doc.data());
@@ -118,7 +143,7 @@ function exportExcel() {
   });
 }
 
-// Export PDF
+// --- Export PDF ---
 function exportPDF() {
   salesRef.get().then(snapshot => {
     const { jsPDF } = window.jspdf;
@@ -132,10 +157,9 @@ function exportPDF() {
   });
 }
 
-// Initial load
+// --- Initial Load ---
 loadProducts();
 loadSales();
 </script>
-
 </body>
 </html>
