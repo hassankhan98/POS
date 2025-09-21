@@ -2,79 +2,85 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>POS Web App</title>
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Firebase v9 (modular SDK) -->
-  <script type="module" src="app.js" defer></script>
-  <link rel="stylesheet" href="styles.css">
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
 </head>
-<body class="bg-gray-900 text-white">
-  <!-- Login Screen -->
-  <div id="loginScreen" class="flex items-center justify-center h-screen">
-    <div class="bg-gray-800 p-8 rounded-2xl shadow-lg w-96">
-      <h2 class="text-2xl font-bold text-center mb-6">Admin Login</h2>
-      <input id="username" type="text" placeholder="Username" class="w-full p-3 mb-4 rounded bg-gray-700 text-white">
-      <input id="password" type="password" placeholder="Password" class="w-full p-3 mb-4 rounded bg-gray-700 text-white">
-      <button id="loginBtn" class="w-full bg-blue-600 hover:bg-blue-700 p-3 rounded-lg">Login</button>
-      <p id="loginError" class="text-red-400 mt-3 hidden">Invalid username or password</p>
-    </div>
+<body class="bg-gray-100 text-gray-900">
+
+  <!-- Navbar -->
+  <nav class="bg-indigo-600 p-4 shadow text-white">
+    <h1 class="text-xl font-bold">POS Web App</h1>
+  </nav>
+
+  <!-- Tabs -->
+  <div class="flex space-x-4 p-4 bg-white shadow">
+    <button onclick="showTab('products')" class="tab-btn bg-indigo-500 text-white px-4 py-2 rounded">Add Products</button>
+    <button onclick="showTab('sales')" class="tab-btn bg-gray-200 px-4 py-2 rounded">Sales Record</button>
+    <button onclick="showTab('profit')" class="tab-btn bg-gray-200 px-4 py-2 rounded">Profit Margin</button>
   </div>
 
-  <!-- Dashboard -->
-  <div id="dashboard" class="hidden">
-    <nav class="bg-gray-800 p-4 flex justify-between items-center">
-      <h1 class="text-xl font-bold">POS Web App</h1>
-      <button id="logoutBtn" class="bg-red-600 px-4 py-2 rounded-lg">Logout</button>
-    </nav>
+  <!-- Content -->
+  <div id="products" class="tab p-6">
+    <h2 class="text-lg font-bold mb-4">Add Product</h2>
+    <form id="productForm" class="space-y-4">
+      <input type="text" id="productName" placeholder="Product Name" class="w-full border p-2 rounded">
+      <input type="number" id="productUnits" placeholder="Units" class="w-full border p-2 rounded">
+      <input type="number" id="productCost" placeholder="Cost Price" class="w-full border p-2 rounded">
+      <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded">Add Product</button>
+    </form>
 
-    <div class="p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-      <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
-        <h2 class="text-lg font-bold mb-3">Add Product</h2>
-        <input id="productName" type="text" placeholder="Product Name" class="w-full p-2 mb-2 rounded bg-gray-700">
-        <input id="costPrice" type="number" placeholder="Cost Price" class="w-full p-2 mb-2 rounded bg-gray-700">
-        <input id="units" type="number" placeholder="Units" class="w-full p-2 mb-2 rounded bg-gray-700">
-        <button id="addProductBtn" class="w-full bg-green-600 hover:bg-green-700 p-2 rounded-lg">Add Product</button>
-      </div>
-
-      <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
-        <h2 class="text-lg font-bold mb-3">Sales Record</h2>
-        <select id="productDropdown" class="w-full p-2 mb-2 rounded bg-gray-700"></select>
-        <input id="soldPrice" type="number" placeholder="Sold Price" class="w-full p-2 mb-2 rounded bg-gray-700">
-        <select id="platform" class="w-full p-2 mb-2 rounded bg-gray-700">
-          <option value="TikTok">TikTok</option>
-          <option value="eBay">eBay</option>
-          <option value="Vinted">Vinted</option>
-          <option value="Facebook">Facebook</option>
-          <option value="Depop">Depop</option>
-          <option value="Cash">Cash</option>
-        </select>
-        <button id="addSaleBtn" class="w-full bg-blue-600 hover:bg-blue-700 p-2 rounded-lg">Add Sale</button>
-      </div>
-
-      <div class="bg-gray-800 p-6 rounded-2xl shadow-lg">
-        <h2 class="text-lg font-bold mb-3">Export Data</h2>
-        <button id="pdfBtn" class="w-full bg-purple-600 hover:bg-purple-700 p-2 rounded-lg mb-2">Download PDF</button>
-        <button id="excelBtn" class="w-full bg-yellow-600 hover:bg-yellow-700 p-2 rounded-lg">Download Excel</button>
-      </div>
-    </div>
-
-    <div class="p-6">
-      <h2 class="text-xl font-bold mb-4">Sales Records</h2>
-      <table class="w-full border-collapse bg-gray-800 rounded-2xl overflow-hidden" id="salesTable">
-        <thead>
-          <tr class="bg-gray-700">
-            <th class="p-3">Product</th>
-            <th class="p-3">Cost Price</th>
-            <th class="p-3">Sold Price</th>
-            <th class="p-3">Platform</th>
-            <th class="p-3">Profit</th>
-          </tr>
-        </thead>
-        <tbody id="salesTableBody"></tbody>
-      </table>
-    </div>
+    <h3 class="text-lg font-bold mt-6">Product List</h3>
+    <table class="w-full mt-2 border">
+      <thead class="bg-gray-200">
+        <tr>
+          <th class="p-2">Name</th>
+          <th class="p-2">Units</th>
+          <th class="p-2">Cost Price</th>
+        </tr>
+      </thead>
+      <tbody id="productList"></tbody>
+    </table>
   </div>
+
+  <div id="sales" class="tab hidden p-6">
+    <h2 class="text-lg font-bold mb-4">Add Sale</h2>
+    <form id="salesForm" class="space-y-4">
+      <select id="saleProduct" class="w-full border p-2 rounded"></select>
+      <input type="number" id="salePrice" placeholder="Sold Price" class="w-full border p-2 rounded">
+      <select id="salePlatform" class="w-full border p-2 rounded">
+        <option value="TikTok">TikTok</option>
+        <option value="Ebay">Ebay</option>
+        <option value="Vinted">Vinted</option>
+        <option value="Cash">Cash</option>
+        <option value="FB">FB</option>
+        <option value="Depop">Depop</option>
+      </select>
+      <button type="submit" class="bg-indigo-600 text-white px-4 py-2 rounded">Add Sale</button>
+    </form>
+
+    <h3 class="text-lg font-bold mt-6">Sales List</h3>
+    <table class="w-full mt-2 border">
+      <thead class="bg-gray-200">
+        <tr>
+          <th class="p-2">Product</th>
+          <th class="p-2">Price</th>
+          <th class="p-2">Platform</th>
+        </tr>
+      </thead>
+      <tbody id="salesList"></tbody>
+    </table>
+  </div>
+
+  <div id="profit" class="tab hidden p-6">
+    <h2 class="text-lg font-bold mb-4">Profit Margin</h2>
+    <div id="profitSummary" class="p-4 bg-white rounded shadow"></div>
+    <button onclick="downloadCSV()" class="mt-4 bg-green-600 text-white px-4 py-2 rounded">Download Excel (CSV)</button>
+  </div>
+
+  <script src="firebase-config.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
