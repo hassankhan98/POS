@@ -1,63 +1,118 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>POS - Product & Sales Manager</title>
-  <link rel="stylesheet" href="styles.css" />
-  <!-- Firebase (compat for simple use) -->
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>POS — Zahano</title>
+
+  <!-- Tailwind CDN (quick integration) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Firebase (compat libs for simpler code) -->
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+
   <!-- Export libs -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <link rel="stylesheet" href="styles.css">
 </head>
-<body>
-  <div class="wrap">
-    <header>
-      <h1>POS — Product & Sales Manager</h1>
-      <p>Manage products, record sales, calculate profit margin. Export to Excel / PDF.</p>
+<body class="bg-slate-900 text-slate-100 font-inter">
+
+  <div class="min-h-screen container mx-auto p-6">
+    <!-- Header -->
+    <header class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="text-2xl font-semibold">Zahano — POS Dashboard</h1>
+        <p class="text-sm text-slate-400 mt-1">Manage products, record sales, and see profit — data saved in Firebase</p>
+      </div>
+      <div class="flex gap-3">
+        <a href="#" class="px-4 py-2 bg-violet-500 rounded-md text-white text-sm">Your Account</a>
+      </div>
     </header>
 
-    <main>
-      <section class="card">
-        <h2>Add Product</h2>
-        <form id="addProductForm">
-          <label>Product name
-            <input id="p_name" required />
-          </label>
-          <label>Cost price (£)
-            <input id="p_cost" type="number" step="0.01" required />
-          </label>
-          <label>Units (stock)
-            <input id="p_units" type="number" step="1" value="1" required />
-          </label>
-          <button type="submit">Add Product</button>
+    <!-- Dashboard summary -->
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+      <div class="bg-slate-800 p-4 rounded-lg shadow">
+        <div class="text-sm text-slate-400">Total Products</div>
+        <div id="totalProducts" class="text-2xl font-bold mt-2">0</div>
+      </div>
+      <div class="bg-slate-800 p-4 rounded-lg shadow">
+        <div class="text-sm text-slate-400">Total Sales (Revenue)</div>
+        <div id="totalSales" class="text-2xl font-bold mt-2">£0.00</div>
+      </div>
+      <div class="bg-slate-800 p-4 rounded-lg shadow">
+        <div class="text-sm text-slate-400">Total Profit</div>
+        <div id="totalProfit" class="text-2xl font-bold mt-2">£0.00</div>
+      </div>
+    </section>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- Add product -->
+      <div class="col-span-1 bg-slate-800 p-5 rounded-lg shadow">
+        <h2 class="text-lg font-semibold mb-3">Add Product</h2>
+        <form id="addProductForm" class="space-y-3">
+          <div>
+            <label class="text-sm text-slate-300 block mb-1">Product name</label>
+            <input id="p_name" required class="w-full rounded-md px-3 py-2 bg-slate-700 text-white" />
+          </div>
+          <div>
+            <label class="text-sm text-slate-300 block mb-1">Cost price (£)</label>
+            <input id="p_cost" type="number" step="0.01" required class="w-full rounded-md px-3 py-2 bg-slate-700 text-white" />
+          </div>
+          <div>
+            <label class="text-sm text-slate-300 block mb-1">Units (stock)</label>
+            <input id="p_units" type="number" step="1" value="1" required class="w-full rounded-md px-3 py-2 bg-slate-700 text-white" />
+          </div>
+          <button type="submit" class="w-full bg-emerald-500 hover:bg-emerald-600 rounded-md py-2 text-black font-semibold">Add Product</button>
         </form>
-      </section>
 
-      <section class="card">
-        <h2>Products</h2>
-        <table id="productsTable">
-          <thead><tr><th>Name</th><th>Cost</th><th>Units</th><th>Actions</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </section>
+        <hr class="my-4 border-slate-700" />
 
-      <section class="card">
-        <h2>Record Sale</h2>
-        <form id="addSaleForm">
-          <label>Product
-            <select id="sale_product" required><option value="">-- select --</option></select>
-          </label>
-          <label>Quantity
-            <input id="sale_qty" type="number" value="1" min="1" required />
-          </label>
-          <label>Sold price (per unit) (£)
-            <input id="sale_price" type="number" step="0.01" required />
-          </label>
-          <label>Platform
-            <select id="sale_platform" required>
+        <h3 class="text-sm text-slate-300 mb-2">Products</h3>
+        <div class="overflow-auto max-h-56">
+          <table class="min-w-full text-left text-sm">
+            <thead class="text-slate-400">
+              <tr>
+                <th class="px-2 py-1">Name</th>
+                <th class="px-2 py-1">Cost</th>
+                <th class="px-2 py-1">Units</th>
+                <th class="px-2 py-1">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="productsTable" class="divide-y divide-slate-700"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Record Sale -->
+      <div class="col-span-1 bg-slate-800 p-5 rounded-lg shadow">
+        <h2 class="text-lg font-semibold mb-3">Record Sale</h2>
+        <form id="addSaleForm" class="space-y-3">
+          <div>
+            <label class="text-sm text-slate-300 block mb-1">Product</label>
+            <select id="sale_product" required class="w-full rounded-md px-3 py-2 bg-slate-700 text-white">
+              <option value="">-- select product --</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="text-sm text-slate-300 block mb-1">Quantity</label>
+              <input id="sale_qty" type="number" min="1" value="1" required class="w-full rounded-md px-3 py-2 bg-slate-700 text-white" />
+            </div>
+            <div>
+              <label class="text-sm text-slate-300 block mb-1">Sold price (per unit) £</label>
+              <input id="sale_price" type="number" step="0.01" required class="w-full rounded-md px-3 py-2 bg-slate-700 text-white" />
+            </div>
+          </div>
+
+          <div>
+            <label class="text-sm text-slate-300 block mb-1">Platform</label>
+            <select id="sale_platform" class="w-full rounded-md px-3 py-2 bg-slate-700 text-white">
               <option>TikTok</option>
               <option>eBay</option>
               <option>Vinted</option>
@@ -65,35 +120,71 @@
               <option>Depop</option>
               <option>Cash</option>
             </select>
-          </label>
-          <button type="submit">Record Sale</button>
+          </div>
+
+          <button type="submit" class="w-full bg-rose-500 hover:bg-rose-600 rounded-md py-2 font-semibold">Record Sale</button>
         </form>
-      </section>
 
-      <section class="card">
-        <h2>Sales</h2>
-        <div class="summary">
-          <div>Total Sales: <span id="totalSales">£0.00</span></div>
-          <div>Total Profit: <span id="totalProfit">£0.00</span></div>
+        <hr class="my-4 border-slate-700" />
+
+        <h3 class="text-sm text-slate-300 mb-2">Recent Sales</h3>
+        <div class="overflow-auto max-h-56">
+          <table class="min-w-full text-left text-sm">
+            <thead class="text-slate-400">
+              <tr>
+                <th class="px-2 py-1">Date</th>
+                <th class="px-2 py-1">Product</th>
+                <th class="px-2 py-1">Qty</th>
+                <th class="px-2 py-1">Sold/unit</th>
+                <th class="px-2 py-1">Profit</th>
+                <th class="px-2 py-1">Platform</th>
+              </tr>
+            </thead>
+            <tbody id="salesTable" class="divide-y divide-slate-700"></tbody>
+          </table>
         </div>
-        <table id="salesTable">
-          <thead><tr><th>Date</th><th>Product</th><th>Qty</th><th>Sold/unit</th><th>Cost/unit</th><th>Profit</th><th>Platform</th></tr></thead>
-          <tbody></tbody>
-        </table>
+      </div>
 
-        <div class="exports">
-          <button id="exportExcel">Download Excel</button>
-          <button id="exportPDF">Download PDF</button>
+      <!-- Exports & Summary -->
+      <div class="col-span-1 bg-slate-800 p-5 rounded-lg shadow flex flex-col gap-4">
+        <h2 class="text-lg font-semibold">Reports & Export</h2>
+        <p class="text-sm text-slate-400">Download full data or generate a quick sales report.</p>
+
+        <div class="flex flex-col gap-3 mt-2">
+          <button id="exportExcel" class="w-full bg-indigo-500 hover:bg-indigo-600 py-2 rounded-md font-semibold">Download Excel</button>
+          <button id="exportPDF" class="w-full bg-sky-500 hover:bg-sky-600 py-2 rounded-md font-semibold">Download PDF</button>
         </div>
-      </section>
-    </main>
 
-    <footer>
-      <small>Made for Zahano — Hosted on GitHub Pages • Data in Firebase Firestore</small>
-    </footer>
+        <hr class="my-2 border-slate-700" />
+
+        <div>
+          <h3 class="text-sm text-slate-300 mb-2">Quick Summary</h3>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="bg-slate-900 p-3 rounded">
+              <div class="text-xs text-slate-400">Products</div>
+              <div id="miniProducts" class="text-lg font-semibold mt-1">0</div>
+            </div>
+            <div class="bg-slate-900 p-3 rounded">
+              <div class="text-xs text-slate-400">Sales Count</div>
+              <div id="miniSales" class="text-lg font-semibold mt-1">0</div>
+            </div>
+            <div class="bg-slate-900 p-3 rounded">
+              <div class="text-xs text-slate-400">Revenue</div>
+              <div id="miniRevenue" class="text-lg font-semibold mt-1">£0.00</div>
+            </div>
+            <div class="bg-slate-900 p-3 rounded">
+              <div class="text-xs text-slate-400">Profit</div>
+              <div id="miniProfit" class="text-lg font-semibold mt-1">£0.00</div>
+            </div>
+          </div>
+        </div>
+
+        <p class="text-xs text-slate-500 mt-auto">Hosted on GitHub Pages • Data stored in Firebase Firestore</p>
+      </div>
+    </div>
   </div>
 
-  <!-- Firebase config (replace with your project settings) -->
+  <!-- Firebase config (replace placeholders) -->
   <script src="firebase-config.js"></script>
   <!-- App logic -->
   <script src="app.js"></script>
