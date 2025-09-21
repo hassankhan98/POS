@@ -218,6 +218,19 @@
             color: white;
         }
 
+        .btn-delete {
+            background-color: var(--danger);
+            border-color: var(--danger);
+            color: white;
+            padding: 5px 10px;
+            font-size: 0.85rem;
+        }
+
+        .btn-delete:hover {
+            background-color: #c82333;
+            border-color: #c82333;
+        }
+
         /* Tables */
         .table {
             border-collapse: separate;
@@ -513,6 +526,7 @@
                                                 <th>Platform</th>
                                                 <th>Sold Price</th>
                                                 <th>Profit</th>
+                                                <th>Action</th>
                                             </tr>
                                         </thead>
                                         <tbody></tbody>
@@ -570,6 +584,7 @@
                                                 <th>Name</th>
                                                 <th>Cost</th>
                                                 <th>Units</th>
+                                                <th>Action</th>
                                             </tr>
                                         </thead>
                                         <tbody></tbody>
@@ -636,6 +651,7 @@
                                                 <th>Platform</th>
                                                 <th>Price</th>
                                                 <th>Profit</th>
+                                                <th>Action</th>
                                             </tr>
                                         </thead>
                                         <tbody></tbody>
@@ -873,6 +889,7 @@
                 document.getElementById('productForm').reset();
                 document.getElementById('units').value = 1;
                 renderProducts();
+                renderSaleProducts();
                 updateDashboard();
                 hideError();
             })
@@ -887,6 +904,37 @@
             });
         });
 
+        // Delete Product
+        function deleteProduct(productId) {
+            if (!confirm('Are you sure you want to delete this product? This will also delete associated sales.')) {
+                return;
+            }
+
+            // Check if there are any sales associated with this product
+            const associatedSales = sales.filter(s => s.productId === productId);
+
+            // Delete associated sales from Firebase
+            Promise.all(associatedSales.map(sale => 
+                db.collection("sales").doc(sale.id).delete()
+            )).then(() => {
+                // Delete product from Firebase
+                return db.collection("products").doc(productId).delete();
+            }).then(() => {
+                // Update local arrays
+                products = products.filter(p => p.id !== productId);
+                sales = sales.filter(s => s.productId !== productId);
+                renderProducts();
+                renderSaleProducts();
+                renderSales();
+                updateDashboard();
+                hideError();
+                console.log("Product and associated sales deleted successfully");
+            }).catch((error) => {
+                console.error("Error deleting product: ", error);
+                showError("Error deleting product: " + error.message);
+            });
+        }
+
         // Render Products
         function renderProducts() {
             const tbody = document.querySelector('#productsTable tbody');
@@ -898,6 +946,11 @@
                     <td>${p.name}</td>
                     <td>$${p.cost.toFixed(2)}</td>
                     <td>${p.units}</td>
+                    <td>
+                        <button class="btn btn-delete" onclick="deleteProduct('${p.id}')">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -1002,6 +1055,26 @@
             });
         });
 
+        // Delete Sale
+        function deleteSale(saleId) {
+            if (!confirm('Are you sure you want to delete this sale?')) {
+                return;
+            }
+
+            db.collection("sales").doc(saleId).delete()
+                .then(() => {
+                    sales = sales.filter(s => s.id !== saleId);
+                    renderSales();
+                    updateDashboard();
+                    hideError();
+                    console.log("Sale deleted successfully");
+                })
+                .catch((error) => {
+                    console.error("Error deleting sale: ", error);
+                    showError("Error deleting sale: " + error.message);
+                });
+        }
+
         // Render Sales Table
         function renderSales() {
             const tbody = document.querySelector('#salesTable tbody');
@@ -1024,6 +1097,11 @@
                     <td class="${(s.profit || 0) >= 0 ? 'profit-positive' : 'profit-negative'}">
                         ${(s.profit || 0) >= 0 ? '+$' : '-$'}${Math.abs(s.profit || 0).toFixed(2)}
                     </td>
+                    <td>
+                        <button class="btn btn-delete" onclick="deleteSale('${s.id}')">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </td>
                 `;
                 recentTbody.appendChild(tr);
             });
@@ -1041,6 +1119,11 @@
                     <td>$${(s.price || 0).toFixed(2)}</td>
                     <td class="${(s.profit || 0) >= 0 ? 'profit-positive' : 'profit-negative'}">
                         ${(s.profit || 0) >= 0 ? '+$' : '-$'}${Math.abs(s.profit || 0).toFixed(2)}
+                    </td>
+                    <td>
+                        <button class="btn btn-delete" onclick="deleteSale('${s.id}')">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
                     </td>
                 `;
                 tbody.appendChild(tr);
