@@ -1,4 +1,4 @@
-// Replace with your Firebase config
+// Replace with your Firebase project config
 const firebaseConfig = {
   apiKey: "AIzaSyBgG89RoBGc-Gqe2TYnO_iPSdtc8XxQwJw",
   authDomain: "pos-web-app-ed7e9.firebaseapp.com",
