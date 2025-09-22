@@ -819,6 +819,7 @@
         const sidebarClose = document.querySelector('.sidebar-close');
         const sidebarOverlay = document.querySelector('.sidebar-overlay');
         const mainContent = document.querySelector('.main-content');
+        const sections = document.querySelectorAll('.content-section');
 
         function toggleSidebar() {
             sidebar.classList.toggle('active');
@@ -836,24 +837,49 @@
         sidebarClose.addEventListener('click', closeSidebar);
         sidebarOverlay.addEventListener('click', closeSidebar);
 
-        // Close sidebar when clicking nav links in mobile view
+        // Navigation
         const navLinks = document.querySelectorAll('.nav-link');
+        
         navLinks.forEach(link => {
             link.addEventListener('click', e => {
                 e.preventDefault();
-                navLinks.forEach(l => l.classList.remove('active'));
-                link.classList.add('active');
-                const target = link.dataset.section;
-                sections.forEach(s => s.classList.remove('active'));
-                document.getElementById(target).classList.add('active');
+                console.log('Nav link clicked:', link.dataset.section); // Debug log
                 
+                // Remove active class from all links and sections
+                navLinks.forEach(l => l.classList.remove('active'));
+                sections.forEach(s => s.classList.remove('active'));
+                
+                // Add active class to clicked link
+                link.classList.add('active');
+                
+                // Show target section
+                const targetSectionId = link.dataset.section;
+                const targetSection = document.getElementById(targetSectionId);
+                if (targetSection) {
+                    targetSection.classList.add('active');
+                    console.log('Showing section:', targetSectionId); // Debug log
+                } else {
+                    console.error('Section not found:', targetSectionId);
+                    showError(`Section "${targetSectionId}" not found`);
+                    return;
+                }
+                
+                // Update content based on section
+                if (targetSectionId === 'add-products') {
+                    renderProducts();
+                    renderSaleProducts();
+                } else if (targetSectionId === 'sales-record') {
+                    renderSaleProducts();
+                    renderSales();
+                }
+                
+                // Update dashboard for all sections
+                updateDashboard();
+                
+                // Close sidebar in mobile view
                 if (window.innerWidth <= 992) {
                     closeSidebar();
                 }
-                
-                if(target === 'add-products') renderProducts();
-                if(target === 'sales-record') renderSaleProducts();
-                updateDashboard();
             });
         });
 
