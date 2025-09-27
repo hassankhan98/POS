@@ -560,6 +560,7 @@
                                                 <th>Product</th>
                                                 <th>Date</th>
                                                 <th>Platform</th>
+                                                <th>Units</th>
                                                 <th>Sold Price</th>
                                                 <th>Profit</th>
                                                 <th>Action</th>
@@ -591,7 +592,7 @@
                                         <input type="text" class="form-control" id="productName" required>
                                     </div>
                                     <div class="mb-3">
-                                        <label class="form-label">Cost Price</label>
+                                        <label class="form-label">Cost Price (per unit)</label>
                                         <input type="number" class="form-control" id="costPrice" required step="0.01">
                                     </div>
                                     <div class="mb-3">
@@ -660,7 +661,11 @@
                                         </select>
                                     </div>
                                     <div class="mb-3">
-                                        <label class="form-label">Sold Price</label>
+                                        <label class="form-label">Units Sold</label>
+                                        <input type="number" class="form-control" id="saleUnits" required min="1" value="1">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label class="form-label">Sold Price (total)</label>
                                         <input type="number" class="form-control" id="salePrice" required step="0.01">
                                     </div>
                                     <button type="submit" class="btn btn-primary" id="recordSaleBtn">
@@ -678,6 +683,9 @@
                                 <span class="badge bg-primary" id="sales-count">0 sales</span>
                             </div>
                             <div class="card-body">
+                                <div class="mb-3">
+                                    <input type="text" class="form-control" id="salesSearch" placeholder="Search sales by product, platform, or date...">
+                                </div>
                                 <div class="table-responsive">
                                     <table class="table table-hover" id="salesTable">
                                         <thead>
@@ -685,6 +693,7 @@
                                                 <th>Product</th>
                                                 <th>Date</th>
                                                 <th>Platform</th>
+                                                <th>Units</th>
                                                 <th>Price</th>
                                                 <th>Profit</th>
                                                 <th>Action</th>
@@ -715,7 +724,7 @@
                                         <thead>
                                             <tr>
                                                 <th>Product</th>
-                                                <th>Total Sold</th>
+                                                <th>Total Sold Units</th>
                                                 <th>Total Revenue</th>
                                                 <th>Total Profit</th>
                                                 <th>Profit Margin</th>
@@ -871,6 +880,8 @@
                 } else if (targetSectionId === 'sales-record') {
                     renderSaleProducts();
                     renderSales();
+                } else if (targetSectionId === 'profit-margin') {
+                    renderProfit();
                 }
                 
                 // Update dashboard for all sections
@@ -921,6 +932,7 @@
                         productId: data.productId || '',
                         product: data.productName || 'Unknown',
                         platform: data.platform || 'unknown',
+                        unitsSold: data.unitsSold || 1,
                         price: data.price || 0,
                         profit: data.profit || 0,
                         date: data.date || new Date().toLocaleDateString()
@@ -1057,7 +1069,7 @@
             products.forEach(p => {
                 const opt = document.createElement('option');
                 opt.value = p.id;
-                opt.textContent = p.name;
+                opt.textContent = `${p.name} (Available: ${p.units})`;
                 select.appendChild(opt);
             });
         }
@@ -1076,11 +1088,12 @@
             
             const productId = document.getElementById('saleProduct').value;
             const platform = document.getElementById('salePlatform').value;
+            const unitsSold = parseInt(document.getElementById('saleUnits').value);
             const soldPrice = parseFloat(document.getElementById('salePrice').value);
             
             // Validate input
-            if (isNaN(soldPrice) || soldPrice <= 0) {
-                showError("Please enter a valid sale price.");
+            if (isNaN(unitsSold) || unitsSold < 1 || isNaN(soldPrice) || soldPrice <= 0) {
+                showError("Please enter valid values for units sold and sale price.");
                 recordSaleText.style.display = 'inline-block';
                 recordSaleLoader.style.display = 'none';
                 recordSaleBtn.disabled = false;
@@ -1096,7 +1109,16 @@
                 return;
             }
             
-            const profit = soldPrice - product.cost;
+            if (unitsSold > product.units) {
+                showError("Not enough units in stock.");
+                recordSaleText.style.display = 'inline-block';
+                recordSaleLoader.style.display = 'none';
+                recordSaleBtn.disabled = false;
+                return;
+            }
+            
+            const totalCost = product.cost * unitsSold;
+            const profit = soldPrice - totalCost;
             const date = new Date().toLocaleDateString();
             
             // Add to Firebase
@@ -1104,6 +1126,7 @@
                 productId: productId,
                 productName: product.name,
                 platform,
+                unitsSold,
                 price: soldPrice,
                 profit,
                 date,
@@ -1117,14 +1140,27 @@
                     productId,
                     product: product.name,
                     platform,
+                    unitsSold,
                     price: soldPrice,
                     profit,
                     date
                 });
-                document.getElementById('saleForm').reset();
-                renderSales();
-                updateDashboard();
-                hideError();
+                // Update product units
+                product.units -= unitsSold;
+                db.collection("products").doc(productId).update({
+                    units: product.units
+                }).then(() => {
+                    document.getElementById('saleForm').reset();
+                    document.getElementById('saleUnits').value = 1;
+                    renderProducts();
+                    renderSaleProducts();
+                    renderSales();
+                    updateDashboard();
+                    hideError();
+                }).catch((error) => {
+                    console.error("Error updating product units: ", error);
+                    showError("Error updating product units: " + error.message);
+                });
             })
             .catch((error) => {
                 console.error("Error recording sale: ", error);
@@ -1143,13 +1179,30 @@
                 return;
             }
 
+            const sale = sales.find(s => s.id === saleId);
+            if (!sale) return;
+
             db.collection("sales").doc(saleId).delete()
                 .then(() => {
-                    sales = sales.filter(s => s.id !== saleId);
-                    renderSales();
-                    updateDashboard();
-                    hideError();
-                    console.log("Sale deleted successfully");
+                    // Update product units
+                    const product = products.find(p => p.id === sale.productId);
+                    if (product) {
+                        product.units += sale.unitsSold;
+                        db.collection("products").doc(sale.productId).update({
+                            units: product.units
+                        }).then(() => {
+                            sales = sales.filter(s => s.id !== saleId);
+                            renderProducts();
+                            renderSaleProducts();
+                            renderSales();
+                            updateDashboard();
+                            hideError();
+                            console.log("Sale deleted successfully");
+                        }).catch((error) => {
+                            console.error("Error updating product units: ", error);
+                            showError("Error updating product units: " + error.message);
+                        });
+                    }
                 })
                 .catch((error) => {
                     console.error("Error deleting sale: ", error);
@@ -1175,6 +1228,7 @@
                     <td>${s.product}</td>
                     <td>${s.date}</td>
                     <td><span class="platform-badge ${platformClass}">${s.platform}</span></td>
+                    <td>${s.unitsSold}</td>
                     <td>$${(s.price || 0).toFixed(2)}</td>
                     <td class="${(s.profit || 0) >= 0 ? 'profit-positive' : 'profit-negative'}">
                         ${(s.profit || 0) >= 0 ? '+$' : '-$'}${Math.abs(s.profit || 0).toFixed(2)}
@@ -1198,6 +1252,7 @@
                     <td>${s.product}</td>
                     <td>${s.date}</td>
                     <td><span class="platform-badge ${platformClass}">${s.platform}</span></td>
+                    <td>${s.unitsSold}</td>
                     <td>$${(s.price || 0).toFixed(2)}</td>
                     <td class="${(s.profit || 0) >= 0 ? 'profit-positive' : 'profit-negative'}">
                         ${(s.profit || 0) >= 0 ? '+$' : '-$'}${Math.abs(s.profit || 0).toFixed(2)}
@@ -1215,6 +1270,17 @@
             document.getElementById('total-sales').textContent = sales.length;
         }
 
+        // Sales Search Filter
+        document.getElementById('salesSearch').addEventListener('input', function() {
+            const filter = this.value.toLowerCase();
+            const rows = document.querySelectorAll('#salesTable tbody tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(filter) ? '' : 'none';
+            });
+        });
+
         // Profit Table
         function renderProfit() {
             const tbody = document.querySelector('#profitTable tbody');
@@ -1222,7 +1288,7 @@
             
             products.forEach(p => {
                 const sold = sales.filter(s => s.productId === p.id);
-                const totalSold = sold.length;
+                const totalSoldUnits = sold.reduce((a, s) => a + (s.unitsSold || 0), 0);
                 const totalRevenue = sold.reduce((a, s) => a + (s.price || 0), 0);
                 const totalProfit = sold.reduce((a, s) => a + (s.profit || 0), 0);
                 const margin = totalRevenue ? ((totalProfit / totalRevenue) * 100).toFixed(2) : 0;
@@ -1230,7 +1296,7 @@
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td>${p.name}</td>
-                    <td>${totalSold}</td>
+                    <td>${totalSoldUnits}</td>
                     <td>$${totalRevenue.toFixed(2)}</td>
                     <td class="${totalProfit >= 0 ? 'profit-positive' : 'profit-negative'}">
                         ${totalProfit >= 0 ? '$' : '-$'}${Math.abs(totalProfit).toFixed(2)}
@@ -1252,7 +1318,6 @@
             document.getElementById('avg-margin').textContent = avgMargin + '%';
             
             renderSales();
-            renderProfit();
             renderCharts();
         }
 
@@ -1367,9 +1432,9 @@
                 });
             } else if (dataType === 'sales') {
                 title = 'Sales';
-                headers = ['Product', 'Date', 'Platform', 'Sold Price', 'Profit'];
+                headers = ['Product', 'Date', 'Platform', 'Units Sold', 'Sold Price', 'Profit'];
                 data = sales.map(s => {
-                    return [s.product, s.date, s.platform, `$${(s.price || 0).toFixed(2)}`, `$${(s.profit || 0).toFixed(2)}`];
+                    return [s.product, s.date, s.platform, s.unitsSold, `$${(s.price || 0).toFixed(2)}`, `$${(s.profit || 0).toFixed(2)}`];
                 });
             }
             
